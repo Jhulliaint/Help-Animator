@@ -6,6 +6,7 @@
   'use strict';
 
   var host;
+  var lastActiveId = null;
 
   var RERENDER = {
     'anim-add': 1, 'anim-remove': 1, 'anim-rename': 1, 'anim-move': 1,
@@ -26,6 +27,7 @@
 
     if (!p.animations.length) {
       host.innerHTML = '<div class="empty-anims">Aucune animation.<br/>Créez-en une ci-dessus ou ajoutez la liste par défaut.</div>';
+      lastActiveId = null;
       return;
     }
 
@@ -35,25 +37,69 @@
     });
     host.innerHTML = '';
     host.appendChild(frag);
+
+    // Bring the freshly-expanded animation into view when the selection changes.
+    if (activeId && activeId !== lastActiveId) {
+      var el = host.querySelector('.anim-card.active');
+      if (el && el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
+    }
+    lastActiveId = activeId;
   }
 
+  // Accordion: only the active animation shows its full editor; the rest
+  // collapse to a compact header + frame-preview strip.
   function buildCard(anim, active) {
     var card = document.createElement('div');
-    card.className = 'anim-card' + (active ? ' active' : '');
+    card.className = 'anim-card' + (active ? ' active' : ' collapsed');
     card.dataset.animId = anim.id;
+    card.appendChild(buildHead(anim, active));
+    card.appendChild(active ? buildBody(anim) : buildStrip(anim));
+    return card;
+  }
 
-    /* ----- header ----- */
+  function buildHead(anim, active) {
     var head = document.createElement('div');
     head.className = 'anim-head';
+    var nameField = active
+      ? '<input class="anim-name-input" data-act="rename" value="' + escapeAttr(anim.name) + '" spellcheck="false" />'
+      : '<span class="anim-name" title="' + escapeAttr(anim.name) + '">' + escapeHtml(anim.name) + '</span>';
     head.innerHTML =
       '<button class="mini" data-act="up" title="Monter">▲</button>' +
       '<button class="mini" data-act="down" title="Descendre">▼</button>' +
-      '<input class="anim-name-input" data-act="rename" value="' + escapeAttr(anim.name) + '" spellcheck="false" />' +
+      nameField +
       '<span class="anim-count">' + anim.frames.length + 'f</span>' +
       '<button class="mini del" data-act="del" title="Supprimer l\'animation">🗑</button>';
-    card.appendChild(head);
+    return head;
+  }
 
-    /* ----- body ----- */
+  // Compact preview shown for non-active animations.
+  function buildStrip(anim) {
+    var strip = document.createElement('div');
+    strip.className = 'anim-strip';
+    if (!anim.frames.length) {
+      strip.classList.add('empty');
+      strip.textContent = 'vide — cliquez pour éditer, ou glissez des sprites ici';
+      return strip;
+    }
+    anim.frames.slice(0, 16).forEach(function (f) {
+      var t = document.createElement('span');
+      t.className = 'strip-thumb';
+      var url = HA.sheet.getThumbForFrame(f);
+      if (url) t.style.backgroundImage = 'url("' + url + '")';
+      else { t.classList.add('no-image'); t.textContent = pad(f.spriteId); }
+      strip.appendChild(t);
+    });
+    if (anim.frames.length > 16) {
+      var more = document.createElement('span');
+      more.className = 'strip-more';
+      more.textContent = '+' + (anim.frames.length - 16);
+      strip.appendChild(more);
+    }
+    return strip;
+  }
+
+  // Full editor shown for the active animation.
+  function buildBody(anim) {
     var body = document.createElement('div');
     body.className = 'anim-body';
 
@@ -88,8 +134,7 @@
       '<button class="btn tiny" data-act="manual-replace" title="Remplacer les frames">Remplacer</button>';
     body.appendChild(manual);
 
-    card.appendChild(body);
-    return card;
+    return body;
   }
 
   function buildChip(animId, frame, idx) {
@@ -268,6 +313,9 @@
 
   function escapeAttr(s) {
     return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+  }
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
   function init() {
