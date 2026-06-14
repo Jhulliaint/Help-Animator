@@ -70,7 +70,7 @@
   }
 
   /* ----------------------------- slicing form ----------------------------- */
-  var SLICE_KEYS = ['spriteWidth', 'spriteHeight', 'columns', 'rows', 'marginX', 'marginY', 'spacingX', 'spacingY'];
+  var SLICE_KEYS = ['spriteWidth', 'spriteHeight', 'columns', 'rows', 'marginX', 'marginY', 'spacingX', 'spacingY', 'inset'];
 
   function refreshSlicingInputs() {
     var s = HA.store.state.project.slicing;
@@ -84,7 +84,8 @@
     document.querySelectorAll('.slice-input').forEach(function (el) {
       el.addEventListener('input', function () {
         var patch = {};
-        patch[el.dataset.key] = Math.max(el.dataset.key === 'marginX' || el.dataset.key === 'marginY' || el.dataset.key === 'spacingX' || el.dataset.key === 'spacingY' ? 0 : 1, parseInt(el.value, 10) || 0);
+        var zeroMin = /^(marginX|marginY|spacingX|spacingY|inset)$/.test(el.dataset.key);
+        patch[el.dataset.key] = Math.max(zeroMin ? 0 : 1, parseInt(el.value, 10) || 0);
         HA.actions.updateSlicing(patch);
       });
     });
@@ -286,6 +287,8 @@
       var rt = HA.store.state.runtime;
       var animId = rt.selectedAnimationId;
       if (!animId) { HA.toast('Sélectionnez une animation à droite', 'info'); return; }
+      var anim = HA.store.state.project.animations.find(function (a) { return a.id === animId; });
+      if (anim && anim.locked) { HA.toast('Animation figée — déverrouillez pour ajouter', 'info'); return; }
       var ids = Array.from(rt.selectedSpriteIds).sort(function (a, b) { return a - b; });
       if (!ids.length) { HA.toast('Aucun sprite sélectionné', 'info'); return; }
       HA.actions.addSpritesToAnimation(animId, ids);
@@ -322,9 +325,20 @@
       HA.actions.addDefaultAnimations();
       HA.toast('Animations par défaut ajoutées', 'ok');
     });
+    document.getElementById('btn-mirror-right').addEventListener('click', function () {
+      var n = HA.actions.mirrorRightFromLeft();
+      HA.toast('Miroir droite←gauche activé' + (n ? ' (+' + n + ' anim. *_right)' : ''), 'ok');
+    });
+    document.getElementById('btn-merge-anims').addEventListener('click', function () {
+      document.getElementById('file-merge').click();
+    });
     document.getElementById('btn-clear-anims').addEventListener('click', function () {
       if (!HA.store.state.project.animations.length) return;
-      if (window.confirm('Supprimer toutes les animations ?')) HA.actions.clearAllAnimations();
+      var locked = HA.store.state.project.animations.filter(function (a) { return a.locked; }).length;
+      var msg = locked
+        ? 'Supprimer les animations non figées ? (' + locked + ' figée(s) conservée(s))'
+        : 'Supprimer toutes les animations ?';
+      if (window.confirm(msg)) HA.actions.clearAllAnimations();
     });
   }
 
@@ -344,6 +358,21 @@
 
     var exBtn = document.getElementById('btn-load-example');
     if (exBtn) exBtn.addEventListener('click', loadExample);
+
+    document.getElementById('file-merge').addEventListener('change', function (e) {
+      var f = e.target.files[0];
+      if (f) {
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            var n = HA.actions.mergeAnimationsFromText(reader.result);
+            HA.toast(n ? (n + ' animation(s) fusionnée(s)') : 'Aucune animation trouvée dans le fichier', n ? 'ok' : 'info');
+          } catch (err) { HA.toast('Fichier illisible (JSON invalide)', 'error'); }
+        };
+        reader.readAsText(f);
+      }
+      e.target.value = '';
+    });
 
     var dz = document.getElementById('drop-image');
     ['dragenter', 'dragover'].forEach(function (t) {

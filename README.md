@@ -4,7 +4,7 @@
 > d'une spritesheet, et générer une map d'animations (`HERO_SPRITE_MAP`) prête à être
 > consommée par un moteur de jeu.
 
-**Statut :** ✅ v1.2.0 — aligné sur le loader réel de Jeux-Math-o (preset d'export + validation). Déployé automatiquement sur Vercel.
+**Statut :** ✅ v1.3.0 — aligné sur Jeux-Math-o (preset + validation) ; rognage, aperçu miroir, verrou & fusion d'animations. Déployé sur Vercel.
 **Stack :** HTML + CSS + JavaScript vanilla, **zéro dépendance, zéro build**.
 **Usage :** ouvrir `index.html` dans un navigateur — aucune installation, aucune ligne de commande.
 
@@ -45,8 +45,8 @@ Site statique prêt à l'emploi (`index.html` à la racine + `vercel.json`). Voi
 1. **Importer** une spritesheet (bouton ou glisser-déposer). Pas de fichier sous la main ?
    **🧪 Charger un exemple** génère une feuille de démonstration 8×5 (sans fichier ni dépendance).
 2. **Régler le découpage** : largeur/hauteur de sprite, colonnes, lignes, marges,
-   espacements. Boutons *Déduire la grille* / *Déduire la taille* pour s'aider de la
-   taille de l'image.
+   espacements, **rognage** (rogne N px par bord pour éliminer les bords parasites).
+   Boutons *Déduire la grille* / *Déduire la taille* pour s'aider de la taille de l'image.
 3. **Créer des animations** (panneau de gauche) — librement, ou via *Liste par défaut*.
 4. **Affecter des sprites** à l'animation active :
    - glisser une vignette (ou une sélection multiple) depuis la grille centrale ;
@@ -54,12 +54,17 @@ Site statique prêt à l'emploi (`index.html` à la racine + `vercel.json`). Voi
    - saisir `0, 1, 2, 3` · `00 01 02 03` · `[0,0], [1,3]` dans le champ de l'animation.
 5. **Réordonner / retirer** les frames par glisser-déposer ou via le ✕ d'une frame
    (le sprite source reste intact). Nombre de frames par animation **illimité**.
-6. **Prévisualiser** en bas : lecture/pause, FPS, boucle, frame courante, zoom.
+6. **Prévisualiser** en bas : lecture/pause, FPS, boucle, frame courante, zoom, **miroir**
+   (⇄, pour vérifier les directions droite/gauche).
 7. **Exporter** (`Exporter` ou `Ctrl+E`) au format **Jeux-Math-o** / JS / JSON / TS. Un
    **panneau de validation** signale les frames hors grille et les animations attendues par
    le jeu mais manquantes ou vides. Copier ou télécharger.
 8. **Sauvegarder / Ouvrir** un projet `.spritemap.json` (l'image est embarquée).
    Auto-sauvegarde permanente dans le navigateur.
+9. **Figer & réutiliser** : verrouillez une animation (🔒) pour la protéger et la **conserver
+   en changeant de planche** (« Importer une image » garde les animations) ; **Fusionner** (⮒)
+   ajoute les animations d'un autre projet/JSON sans écraser. « ⇄ Droite miroir » génère les
+   `*_right` en miroir des `*_left` (active `flipRightFromLeft`).
 
 **Interface (depuis v1.1.0) :** animations à **gauche** (accordéon — seule l'animation
 sélectionnée est dépliée), grille de sprites au **centre**, import + découpage à
@@ -234,10 +239,10 @@ Help-Animator/
 ```ts
 type SpriteCell      = { id, row, col, x, y, width, height };
 type AnimationFrame  = { spriteId, row, col };
-type AnimationDef    = { id, name, frames: AnimationFrame[], fps, loop };
+type AnimationDef    = { id, name, frames: AnimationFrame[], fps, loop, locked };
 type ProjectData     = {
   version, spriteSheetName, imageDataUrl,
-  slicing: { spriteWidth, spriteHeight, columns, rows, marginX, marginY, spacingX, spacingY },
+  slicing: { spriteWidth, spriteHeight, columns, rows, marginX, marginY, spacingX, spacingY, inset },
   animations: AnimationDef[],
   preview: { fps, loop, scale },
   export:  {

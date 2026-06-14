@@ -8,6 +8,38 @@ et le projet suit un [versionnage sémantique](https://semver.org/lang/fr/).
 ## [Non publié]
 - (rien pour l'instant)
 
+## [1.3.0] — 2026-06-14
+### Added
+- **Rognage (inset) à la découpe** : nouveau champ qui rogne N px sur chaque bord de chaque
+  case. Élimine les **bords parasites** (dérive de grille sur une planche non divisible en
+  pixels entiers — ex. 411 px ÷ 8 = 51,375 —, séparateurs entre sprites, débordement du
+  dessin) dans les vignettes ET l'aperçu, **sans toucher** aux coordonnées `[ligne, colonne]`
+  ni à l'export.
+- **Aperçu en miroir** (bouton « ⇄ » du lecteur) : visualise une animation retournée
+  horizontalement, pour vérifier qu'un `*_left` lu en miroir donne un bon `*_right`.
+- **« ⇄ Droite miroir »** : crée les `*_right` manquantes (pour chaque `*_left` non vide) et
+  active `flipRightFromLeft` → le jeu dessine les `*_left` en miroir pour la droite. C'est le
+  seul miroir que le format du jeu sait porter (pas de flip par frame dans `[ligne,colonne]`).
+- **Verrou / figer par animation** (🔒) : une animation figée est protégée (frames, nom,
+  suppression) et **conservée quand on change de planche**. « Tout supprimer » épargne les
+  animations figées.
+- **Fusionner des animations** (⮒) : importe les animations d'un autre projet `.spritemap.json`,
+  d'un export JSON ou d'un preset Jeux-Math-o **en les ajoutant** à l'existant (noms en
+  collision suffixés), sans remplacer l'image ni les animations en cours.
+
+### Notes
+- Rappel : **« Importer une image » conserve déjà les animations** (seule l'image change) ;
+  c'est **« Ouvrir un projet »** qui remplace tout. Verrou + fusion couvrent le flux « figer
+  ce qui est validé puis charger d'autres planches sans rien perdre ».
+- La vraie multi-planches (une feuille source par animation) reste volontairement non faite :
+  le jeu ne charge qu'une seule feuille (à reconsidérer si le besoin se confirme).
+
+### Verification
+- 21 tests logique supplémentaires (rognage, garde-fous de verrou, fusion des 3 formats de
+  fichier, miroir + validation) + 15 tests UI (champ rognage, bascule miroir, verrou via la
+  carte, boutons fusion/miroir, export reflétant `flipRightFromLeft`) — **0 erreur**.
+  Régression v1.2.0 re-vérifiée (22 + 20).
+
 ## [1.2.0] — 2026-06-14
 ### Added
 - **Preset d'export « Jeux-Math-o »** (4ᵉ format, à côté de JS/JSON/TS) : produit
@@ -94,6 +126,7 @@ et le projet suit un [versionnage sémantique](https://semver.org/lang/fr/).
   assets) — déploiement statique sans build.
 
 [Non publié]: https://github.com/Jhulliaint/Help-Animator/compare/main...HEAD
+[1.3.0]: https://github.com/Jhulliaint/Help-Animator/compare/main...claude/peaceful-curie-t06vtb
 [1.2.0]: https://github.com/Jhulliaint/Help-Animator/compare/main...claude/peaceful-curie-t06vtb
 [1.1.0]: https://github.com/Jhulliaint/Help-Animator/pull/2
 [1.0.0]: https://github.com/Jhulliaint/Help-Animator/pull/1

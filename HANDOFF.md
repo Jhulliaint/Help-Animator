@@ -21,9 +21,9 @@ Tu remplaces une session précédente : ce message contient l'état complet pour
 
 Help-Animator est un OUTIL web local (HTML/CSS/JS vanilla, zéro build, zéro dépendance) qui
 découpe une spritesheet, affecte les sprites à des animations nommées (drag & drop ou saisie),
-prévisualise le mouvement, et exporte une map « HERO_SPRITE_MAP ». Version actuelle : v1.2.0
-(PR #1→#3 fusionnées dans main ; PR #4 — preset Jeux-Math-o + validation + exemple — en draft),
-déployée en statique sur Vercel. S'ouvre en double-cliquant index.html (aucune ligne de commande).
+prévisualise le mouvement, et exporte une map « HERO_SPRITE_MAP ». Version actuelle : v1.3.0
+(PR #1→#3 fusionnées dans main ; PR #5 — alignement Jeux-Math-o + rognage/miroir/verrou/fusion —
+en draft), déployée en statique sur Vercel. S'ouvre en double-cliquant index.html (aucune CLI).
 
 PROJET COMPLÉMENTAIRE (LECTURE SEULE)
 
@@ -84,9 +84,9 @@ Convention : id = ligne × colonnes + colonne ; frames exportées en [ligne, col
 
 Modèle de données :
   Frame      = { spriteId, row, col }
-  Animation  = { id, name, frames[], fps, loop }
+  Animation  = { id, name, frames[], fps, loop, locked }
   Project    = { version, spriteSheetName, imageDataUrl,
-                 slicing:{spriteWidth,spriteHeight,columns,rows,marginX,marginY,spacingX,spacingY},
+                 slicing:{spriteWidth,spriteHeight,columns,rows,marginX,marginY,spacingX,spacingY,inset},
                  animations[], preview:{fps,loop,scale},
                  export:{format,varName,pretty,includeEmpty,padIds,
                          game:{sheet,cell,flipRightFromLeft,fpsWalk,fpsIdle,comment}} }
@@ -119,19 +119,21 @@ Lancer & tester :
     (v1.2.0 validée ainsi : 22 tests logique + 20 tests UI, 0 erreur.)
 
 État Git : main = v1.1.0 (Initial → PR#1 outil → PR#2 UI/accordéon → PR#3 docs). Branche de
-session claude/peaceful-curie-t06vtb = v1.2.0 (PR #4 draft : preset Jeux-Math-o + validation +
-exemple + noms par défaut alignés). Déploiement Vercel automatique sur main.
+session claude/peaceful-curie-t06vtb = v1.3.0 (PR #5 draft : v1.2.0 alignement Jeux-Math-o
+[preset + validation + exemple + 16 noms] PUIS v1.3.0 [rognage, aperçu miroir, « droite miroir »,
+verrou par animation, fusion d'animations]). Déploiement Vercel automatique sur main.
 
 PISTES D'AMÉLIORATION
-  FAIT en v1.2.0 :
-  - ✅ Preset d'export « Jeux-Math-o » calé sur le loader réel (SpriteAnimator JSON).
-  - ✅ Validation : frames hors grille + animations attendues par le jeu absentes/vides.
-  - ✅ Bouton « charger un exemple » (feuille 8×5 générée, faute d'embarquer le vrai PNG 802 Ko).
-  RESTE À FAIRE (P2, non commencé) :
-  - Workflow GitHub Actions de validation (lint / exécution des tests Node + jsdom).
-  - Projet de démarrage pré-rempli avec un HERO_SPRITE_MAP d'exemple.
-  - Éventuellement : embarquer/réduire la vraie feuille du chevalier comme exemple (pas d'outil
-    image dispo dans l'env. ; ~1 Mo en base64 → écarté pour l'instant au profit du synthétique).
+  FAIT (PR #5) :
+  - ✅ Preset d'export « Jeux-Math-o » (SpriteAnimator JSON) + validation + exemple généré + 16 noms.
+  - ✅ Rognage (inset) à la découpe : enlève les bords parasites (dérive de grille / séparateurs).
+  - ✅ Miroir : aperçu en miroir + « ⇄ Droite miroir » (crée les *_right vides + flipRightFromLeft).
+  - ✅ Verrou par animation (figée = protégée, conservée au changement de planche) + Fusion d'animations.
+  RESTE À FAIRE :
+  - Vraie MULTI-PLANCHES (une feuille source par animation) — demandé, mis en attente : le jeu ne
+    charge qu'UNE feuille, donc un export multi-feuilles n'est pas directement consommable tel quel.
+  - Workflow GitHub Actions (lint + tests Node/jsdom) ; projet de démarrage pré-rempli.
+  - Éventuellement embarquer/réduire la vraie feuille du chevalier (pas d'outil image dans l'env.).
 
 Commence par : (1) lire Jeux-Math-o et me résumer comment il consomme les animations,
 (2) me proposer le plan d'alignement + les améliorations priorisées. Puis implémente.
@@ -142,7 +144,8 @@ Commence par : (1) lire Jeux-Math-o et me résumer comment il consomme les anima
 ## Notes pour moi (hors prompt)
 - La nouvelle session se fait **sur Help-Animator**, avec **Jeux-Math-o ajouté en lecture seule**.
 - Une autre instance code déjà le jeu → Help-Animator **lit** seulement Jeux-Math-o.
-- État actuel : Help-Animator v1.2.0 — `main` à v1.1.0 (PR #1–#3) ; PR #4 (draft) ajoute le
-  preset Jeux-Math-o, la validation, l'exemple généré et les 16 noms par défaut alignés.
+- État actuel : Help-Animator v1.3.0 — `main` à v1.1.0 (PR #1–#3) ; PR #5 (draft) ajoute le
+  preset Jeux-Math-o, la validation, l'exemple généré, les 16 noms alignés, puis le rognage
+  anti-bords-parasites, l'aperçu miroir + « droite miroir », le verrou et la fusion d'animations.
 - Si besoin de la map réelle/corrigée : l'exporter depuis l'app (format **🎮 Jeux-Math-o** →
   fichier `hero_sprite_map.json`, à déposer dans `Jeux-Math-o/assets/sprites/`).

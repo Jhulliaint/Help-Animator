@@ -44,7 +44,8 @@
           return { spriteId: f.spriteId, row: f.row, col: f.col };
         }),
         fps: a.fps || 8,
-        loop: a.loop !== false
+        loop: a.loop !== false,
+        locked: !!a.locked
       };
     });
 

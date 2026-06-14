@@ -34,7 +34,8 @@
         spriteWidth: 48, spriteHeight: 48,
         columns: 8, rows: 6,
         marginX: 0, marginY: 0,
-        spacingX: 0, spacingY: 0
+        spacingX: 0, spacingY: 0,
+        inset: 0
       },
       animations: [],               // [{ id, name, frames:[{spriteId,row,col}], fps, loop }]
       preview: { fps: 8, loop: true, scale: 4 },
