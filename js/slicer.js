@@ -11,16 +11,17 @@
       var cells = [];
       var cols = Math.max(0, s.columns | 0);
       var rows = Math.max(0, s.rows | 0);
+      var inset = Math.max(0, s.inset | 0);
       for (var r = 0; r < rows; r++) {
         for (var c = 0; c < cols; c++) {
           cells.push({
             id: r * cols + c,
             row: r,
             col: c,
-            x: s.marginX + c * (s.spriteWidth + s.spacingX),
-            y: s.marginY + r * (s.spriteHeight + s.spacingY),
-            width: s.spriteWidth,
-            height: s.spriteHeight
+            x: s.marginX + c * (s.spriteWidth + s.spacingX) + inset,
+            y: s.marginY + r * (s.spriteHeight + s.spacingY) + inset,
+            width: Math.max(1, s.spriteWidth - 2 * inset),
+            height: Math.max(1, s.spriteHeight - 2 * inset)
           });
         }
       }
@@ -29,13 +30,14 @@
 
     // Geometry of a single cell at (row, col) for the current slicing.
     cellAt: function (row, col, s) {
+      var inset = Math.max(0, s.inset | 0);
       return {
         id: row * s.columns + col,
         row: row, col: col,
-        x: s.marginX + col * (s.spriteWidth + s.spacingX),
-        y: s.marginY + row * (s.spriteHeight + s.spacingY),
-        width: s.spriteWidth,
-        height: s.spriteHeight
+        x: s.marginX + col * (s.spriteWidth + s.spacingX) + inset,
+        y: s.marginY + row * (s.spriteHeight + s.spacingY) + inset,
+        width: Math.max(1, s.spriteWidth - 2 * inset),
+        height: Math.max(1, s.spriteHeight - 2 * inset)
       };
     },
 

@@ -43,6 +43,7 @@
           </div>
         </div>
         <p id="img-info" class="img-info muted">Aucune image chargée.</p>
+        <button id="btn-load-example" class="btn small ghost full" title="Génère une feuille d'exemple 8×5 pour essayer l'outil sans fichier">🧪 Charger un exemple</button>
       </section>
 
       <section class="card">
@@ -79,6 +80,10 @@
           <label class="field">
             <span>Espace Y</span>
             <input type="number" min="0" class="slice-input" data-key="spacingY" id="sl-spacingY" />
+          </label>
+          <label class="field">
+            <span>Rognage</span>
+            <input type="number" min="0" class="slice-input" data-key="inset" id="sl-inset" title="Rogne N px sur chaque bord de chaque case — élimine les bords parasites dans les vignettes et l'aperçu (sans toucher aux coordonnées [ligne, colonne])" />
           </label>
         </div>
         <div class="btn-row">
@@ -131,6 +136,10 @@
         </div>
         <div class="btn-row">
           <button id="btn-add-default" class="btn tiny">Liste par défaut</button>
+          <button id="btn-mirror-right" class="btn tiny" title="Crée les *_right manquantes et active le miroir gauche→droite (flipRightFromLeft)">⇄ Droite miroir</button>
+        </div>
+        <div class="btn-row">
+          <button id="btn-merge-anims" class="btn tiny" title="Fusionner les animations d'un autre projet / JSON sans écraser l'existant">⮒ Fusionner</button>
           <button id="btn-clear-anims" class="btn tiny danger">Tout supprimer</button>
         </div>
       </div>
@@ -152,6 +161,7 @@
         <button id="btn-prev" class="btn icon" title="Frame précédente">⏮</button>
         <button id="btn-play" class="btn icon play" title="Lecture / Pause">▶</button>
         <button id="btn-next" class="btn icon" title="Frame suivante">⏭</button>
+        <button id="btn-prev-mirror" class="btn icon" title="Aperçu en miroir (vérifier les directions droite / gauche)" aria-pressed="false">⇄</button>
 
         <label class="field row tight">
           <span>FPS</span>
@@ -182,6 +192,7 @@
       <div class="modal-body">
         <div class="export-options">
           <div class="seg" role="group" aria-label="Format">
+            <label class="seg-game"><input type="radio" name="exp-format" value="game" /> 🎮 Jeux-Math-o</label>
             <label><input type="radio" name="exp-format" value="js" checked /> JavaScript</label>
             <label><input type="radio" name="exp-format" value="json" /> JSON</label>
             <label><input type="radio" name="exp-format" value="ts" /> TypeScript</label>
@@ -199,7 +210,27 @@
             <span>Inclure les animations vides</span>
           </label>
         </div>
+
+        <div class="export-game" id="export-game" hidden>
+          <p class="hint muted">Calé sur le <code>SpriteAnimator</code> de Jeux-Math-o : <code>{ sheet, cell, cols, flipRightFromLeft, fps, animations }</code> — JSON chargé par <code>fetch()</code>.</p>
+          <div class="game-grid">
+            <label class="field"><span>Feuille (chemin)</span>
+              <input type="text" id="exp-game-sheet" /></label>
+            <label class="field"><span>Cellule (cell, px)</span>
+              <input type="number" id="exp-game-cell" min="1" placeholder="auto" /></label>
+            <label class="field"><span>FPS walk</span>
+              <input type="number" id="exp-game-fpswalk" min="1" max="60" /></label>
+            <label class="field"><span>FPS idle</span>
+              <input type="number" id="exp-game-fpsidle" min="1" max="60" /></label>
+          </div>
+          <label class="field row">
+            <input type="checkbox" id="exp-game-flip" />
+            <span>flipRightFromLeft — réutilise <code>*_left</code> en miroir pour <code>*_right</code></span>
+          </label>
+        </div>
+
         <textarea id="export-text" class="export-text" spellcheck="false" readonly></textarea>
+        <div class="export-validation" id="export-validation" aria-live="polite"></div>
       </div>
       <div class="modal-footer">
         <button id="btn-copy-export" class="btn primary">📋 Copier</button>
@@ -211,6 +242,7 @@
   <!-- hidden file inputs -->
   <input type="file" id="file-image" accept="image/*" hidden />
   <input type="file" id="file-project" accept=".json,application/json" hidden />
+  <input type="file" id="file-merge" accept=".json,application/json" hidden />
 
   <div id="toast-container" class="toast-container" aria-live="polite"></div>
 
@@ -220,12 +252,14 @@
   <script src="js/sheet.js"></script>
   <script src="js/parse.js"></script>
   <script src="js/exporter.js"></script>
+  <script src="js/validate.js"></script>
   <script src="js/project.js"></script>
   <script src="js/actions.js"></script>
   <script src="js/spriteGrid.js"></script>
   <script src="js/animations.js"></script>
   <script src="js/dnd.js"></script>
   <script src="js/preview.js"></script>
+  <script src="js/example.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

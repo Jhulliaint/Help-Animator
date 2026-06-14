@@ -4,9 +4,10 @@
 (function (HA) {
   'use strict';
 
-  var canvas, ctx, nameEl, frameInfoEl, playBtn;
+  var canvas, ctx, nameEl, frameInfoEl, playBtn, mirrorBtn;
   var fpsRange, fpsNum, scaleRange, loopChk;
 
+  var mirror = false;
   var playing = false;
   var frameIndex = 0;
   var acc = 0;
@@ -96,7 +97,18 @@
     var dx = (w - dw) / 2;
     var dy = (h - dh) / 2;
 
-    if (!HA.sheet.drawFrame(ctx, frame, dx, dy, dw, dh)) {
+    var drawn;
+    if (mirror) {
+      // flip horizontally in place (centered sprite stays centered)
+      ctx.save();
+      ctx.translate(w, 0);
+      ctx.scale(-1, 1);
+      drawn = HA.sheet.drawFrame(ctx, frame, dx, dy, dw, dh);
+      ctx.restore();
+    } else {
+      drawn = HA.sheet.drawFrame(ctx, frame, dx, dy, dw, dh);
+    }
+    if (!drawn) {
       ctx.fillStyle = '#6f688f';
       ctx.font = '12px monospace';
       ctx.textAlign = 'center';
@@ -139,12 +151,21 @@
     nameEl = document.getElementById('prev-name');
     frameInfoEl = document.getElementById('prev-frame-info');
     playBtn = document.getElementById('btn-play');
+    mirrorBtn = document.getElementById('btn-prev-mirror');
     fpsRange = document.getElementById('prev-fps-range');
     fpsNum = document.getElementById('prev-fps');
     scaleRange = document.getElementById('prev-scale');
     loopChk = document.getElementById('prev-loop');
 
     playBtn.addEventListener('click', function () { setPlaying(!playing); });
+    if (mirrorBtn) {
+      mirrorBtn.addEventListener('click', function () {
+        mirror = !mirror;
+        mirrorBtn.classList.toggle('active', mirror);
+        mirrorBtn.setAttribute('aria-pressed', mirror ? 'true' : 'false');
+        draw();
+      });
+    }
     document.getElementById('btn-prev').addEventListener('click', function () { step(-1); });
     document.getElementById('btn-next').addEventListener('click', function () { step(1); });
     fpsRange.addEventListener('input', function () { onFps(fpsRange.value); });
