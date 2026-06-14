@@ -221,5 +221,6 @@ Le dépôt est un site statique (`index.html` à la racine + `vercel.json` :
 
 ## 📚 Voir aussi
 - [`CHANGELOG.md`](CHANGELOG.md) — historique des versions.
-- [`HANDOFF.md`](HANDOFF.md) — prompt prêt à coller pour reprendre le travail dans une
-  nouvelle session (notamment côté `Jeux-Math-o`) sans perdre de contexte.
+- [`HANDOFF.md`](HANDOFF.md) — prompt prêt à coller pour **reprendre le développement de
+  Help-Animator** dans une nouvelle session, en s'appuyant **en lecture seule** sur le dépôt
+  du jeu `Jeux-Math-o` pour perfectionner l'outil (sans perdre de contexte).
