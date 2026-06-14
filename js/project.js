@@ -35,6 +35,7 @@
     p.slicing = Object.assign(HA.defaultProject().slicing, (obj && obj.slicing) || {});
     p.preview = Object.assign(HA.defaultProject().preview, (obj && obj.preview) || {});
     p.export = Object.assign(HA.defaultProject().export, (obj && obj.export) || {});
+    p.export.game = Object.assign(HA.defaultProject().export.game, (obj && obj.export && obj.export.game) || {});
     p.animations = ((obj && obj.animations) || []).map(function (a) {
       return {
         id: a.id || HA.uid('anim'),

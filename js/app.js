@@ -38,6 +38,10 @@
     return ok;
   }
 
+  function escapeHtml(s) {
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
   /* ----------------------------- image import ----------------------------- */
   function importImageFile(file) {
     if (!file || !/^image\//.test(file.type)) { HA.toast('Fichier image invalide', 'error'); return; }
@@ -48,6 +52,21 @@
       }).catch(function () { HA.toast('Impossible de charger l\'image', 'error'); });
     };
     reader.readAsDataURL(file);
+  }
+
+  // Generated demo sheet (no binary asset, file://-safe), laid out 8×5 like the game.
+  function loadExample() {
+    if (!HA.example) return;
+    var url = HA.example.generateDataUrl();
+    HA.actions.setImage('exemple-chevalier.png', url).then(function () {
+      HA.actions.updateSlicing({
+        spriteWidth: HA.example.CELL, spriteHeight: HA.example.CELL,
+        columns: HA.example.COLS, rows: HA.example.ROWS,
+        marginX: 0, marginY: 0, spacingX: 0, spacingY: 0
+      });
+      if (!HA.store.state.project.animations.length) HA.actions.addDefaultAnimations();
+      HA.toast('Exemple chargé (8×5) — découpez, glissez, prévisualisez', 'ok');
+    }).catch(function () { HA.toast('Impossible de générer l\'exemple', 'error'); });
   }
 
   /* ----------------------------- slicing form ----------------------------- */
@@ -109,14 +128,54 @@
   function closeExport() { document.getElementById('export-modal').hidden = true; }
 
   function refreshExportUI() {
-    var e = HA.store.state.project.export;
+    var p = HA.store.state.project;
+    var e = p.export;
     document.querySelectorAll('input[name="exp-format"]').forEach(function (r) { r.checked = (r.value === e.format); });
     document.getElementById('exp-varname').value = e.varName;
     document.getElementById('exp-pretty').checked = e.pretty;
     document.getElementById('exp-empty').checked = e.includeEmpty;
+
+    var g = e.game || {};
+    document.getElementById('exp-game-sheet').value = g.sheet || '';
+    var cellInput = document.getElementById('exp-game-cell');
+    cellInput.value = (g.cell && g.cell > 0) ? g.cell : '';
+    cellInput.placeholder = 'auto (' + p.slicing.spriteWidth + ')';
+    document.getElementById('exp-game-fpswalk').value = g.fpsWalk || 8;
+    document.getElementById('exp-game-fpsidle').value = g.fpsIdle || 3;
+    document.getElementById('exp-game-flip').checked = !!g.flipRightFromLeft;
+
+    updateExportPanels(e.format);
+  }
+  function updateExportPanels(format) {
+    document.getElementById('export-game').hidden = (format !== 'game');
+    // "Nom de variable" is meaningless for JSON / game output: hide it there.
+    var varRow = document.getElementById('exp-varname').closest('.field');
+    if (varRow) varRow.style.display = (format === 'js' || format === 'ts') ? '' : 'none';
   }
   function refreshExportText() {
     document.getElementById('export-text').value = HA.exporter.exportString(HA.store.state.project);
+    refreshValidation();
+  }
+  function refreshValidation() {
+    var hostEl = document.getElementById('export-validation');
+    if (!hostEl || !HA.validate) return;
+    var res = HA.validate.run(HA.store.state.project, HA.store.state.runtime);
+    if (!res.issues.length) {
+      hostEl.innerHTML = '<div class="vld ok">✅ Aucune anomalie — la map est prête pour Jeux-Math-o.</div>';
+      return;
+    }
+    var rank = { error: 0, warn: 1, info: 2 };
+    var sorted = res.issues.slice().sort(function (a, b) { return rank[a.level] - rank[b.level]; });
+    var summary = '<div class="vld-summary">' +
+      (res.counts.error ? '<span class="b err">⛔ ' + res.counts.error + '</span>' : '') +
+      (res.counts.warn ? '<span class="b wrn">⚠️ ' + res.counts.warn + '</span>' : '') +
+      (res.counts.info ? '<span class="b inf">ℹ️ ' + res.counts.info + '</span>' : '') +
+      '</div>';
+    var items = sorted.map(function (it) {
+      var icon = it.level === 'error' ? '⛔' : (it.level === 'warn' ? '⚠️' : 'ℹ️');
+      return '<li class="' + it.level + '">' + icon + ' ' + escapeHtml(it.msg) + '</li>';
+    }).join('');
+    hostEl.innerHTML = summary + '<ul class="vld-list">' + items + '</ul>';
   }
 
   function bindExportModal() {
@@ -126,7 +185,7 @@
       if (ev.target.id === 'export-modal') closeExport();
     });
     document.querySelectorAll('input[name="exp-format"]').forEach(function (r) {
-      r.addEventListener('change', function () { HA.actions.updateExport({ format: r.value }); refreshExportText(); });
+      r.addEventListener('change', function () { HA.actions.updateExport({ format: r.value }); refreshExportUI(); refreshExportText(); });
     });
     document.getElementById('exp-varname').addEventListener('input', function (e) {
       HA.actions.updateExport({ varName: e.target.value }); refreshExportText();
@@ -137,6 +196,22 @@
     document.getElementById('exp-empty').addEventListener('change', function (e) {
       HA.actions.updateExport({ includeEmpty: e.target.checked }); refreshExportText();
     });
+
+    // --- Jeux-Math-o preset fields ---
+    function bindGameField(id, key, asInt) {
+      document.getElementById(id).addEventListener('input', function (e) {
+        var v = asInt ? (e.target.value === '' ? 0 : (parseInt(e.target.value, 10) || 0)) : e.target.value;
+        var patch = {}; patch[key] = v;
+        HA.actions.updateExportGame(patch); refreshExportText();
+      });
+    }
+    bindGameField('exp-game-sheet', 'sheet', false);
+    bindGameField('exp-game-cell', 'cell', true);
+    bindGameField('exp-game-fpswalk', 'fpsWalk', true);
+    bindGameField('exp-game-fpsidle', 'fpsIdle', true);
+    document.getElementById('exp-game-flip').addEventListener('change', function (e) {
+      HA.actions.updateExportGame({ flipRightFromLeft: e.target.checked }); refreshExportText();
+    });
     document.getElementById('btn-copy-export').addEventListener('click', function () {
       copyText(document.getElementById('export-text').value).then(function (ok) {
         HA.toast(ok === false ? 'Copie impossible' : 'Copié dans le presse-papiers', ok === false ? 'error' : 'ok');
@@ -145,7 +220,9 @@
     document.getElementById('btn-download-export').addEventListener('click', function () {
       var e = HA.store.state.project.export;
       var ext = HA.exporter.fileExtension(e.format);
-      var name = (e.varName || 'HERO_SPRITE_MAP').toLowerCase().replace(/[^a-z0-9_]+/g, '_');
+      var name = (e.format === 'game')
+        ? 'hero_sprite_map'
+        : (e.varName || 'HERO_SPRITE_MAP').toLowerCase().replace(/[^a-z0-9_]+/g, '_');
       HA.project.download(name + '.' + ext, document.getElementById('export-text').value,
         ext === 'json' ? 'application/json' : 'text/plain');
       HA.toast('Fichier .' + ext + ' téléchargé', 'ok');
@@ -264,6 +341,9 @@
       if (e.target.files[0]) openProjectFile(e.target.files[0]);
       e.target.value = '';
     });
+
+    var exBtn = document.getElementById('btn-load-example');
+    if (exBtn) exBtn.addEventListener('click', loadExample);
 
     var dz = document.getElementById('drop-image');
     ['dragenter', 'dragover'].forEach(function (t) {

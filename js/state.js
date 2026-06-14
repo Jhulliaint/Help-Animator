@@ -4,12 +4,21 @@
 (function (HA) {
   'use strict';
 
-  var DEFAULT_ANIMATION_NAMES = [
+  // The complete set of animation keys Jeux-Math-o's Hero._animKey() can ask for:
+  // {state}_{direction} with state ∈ {idle,walk,attack,guard}, dir ∈ {down,up,left,right}.
+  // Keeping the tool's defaults identical to the game's keys means a freshly
+  // created project already lines up with what the game's SpriteAnimator expects.
+  var GAME_DIRECTIONS = ['down', 'up', 'left', 'right'];
+  var GAME_ANIMATION_KEYS = [
     'idle_down', 'idle_up', 'idle_left', 'idle_right',
     'walk_down', 'walk_up', 'walk_left', 'walk_right',
     'attack_down', 'attack_up', 'attack_left', 'attack_right',
-    'guard_down', 'hurt', 'death', 'cast_spell', 'dash_left', 'dash_right'
+    'guard_down', 'guard_up', 'guard_left', 'guard_right'
   ];
+  // The game ships guard_down; the other guard directions fall back to idle_<dir>
+  // gracefully, so the validator flags them as optional (info, not a warning).
+  var GAME_OPTIONAL_KEYS = ['guard_up', 'guard_left', 'guard_right'];
+  var DEFAULT_ANIMATION_NAMES = GAME_ANIMATION_KEYS.slice();
 
   function uid(prefix) {
     return (prefix || 'id') + '_' + Math.random().toString(36).slice(2, 9);
@@ -29,7 +38,17 @@
       },
       animations: [],               // [{ id, name, frames:[{spriteId,row,col}], fps, loop }]
       preview: { fps: 8, loop: true, scale: 4 },
-      export: { format: 'js', varName: 'HERO_SPRITE_MAP', pretty: true, includeEmpty: false, padIds: 2 }
+      export: {
+        format: 'js', varName: 'HERO_SPRITE_MAP', pretty: true, includeEmpty: false, padIds: 2,
+        // Settings for the "Jeux-Math-o" export preset (the game's SpriteAnimator JSON).
+        game: {
+          sheet: './assets/sprites/hero-sheet.png',
+          cell: 0,                 // 0 = auto: use the current sprite width (square cell)
+          flipRightFromLeft: false,
+          fpsWalk: 8, fpsIdle: 3,
+          comment: ''
+        }
+      }
     };
   }
 
@@ -108,6 +127,9 @@
   };
 
   HA.DEFAULT_ANIMATION_NAMES = DEFAULT_ANIMATION_NAMES;
+  HA.GAME_ANIMATION_KEYS = GAME_ANIMATION_KEYS;
+  HA.GAME_OPTIONAL_KEYS = GAME_OPTIONAL_KEYS;
+  HA.GAME_DIRECTIONS = GAME_DIRECTIONS;
   HA.uid = uid;
   HA.defaultProject = defaultProject;
   HA.store = store;

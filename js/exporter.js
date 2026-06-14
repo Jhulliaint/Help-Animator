@@ -1,5 +1,5 @@
 /* =====================================================================
-   exporter.js — generate the HERO_SPRITE_MAP string (JS / JSON / TS)
+   exporter.js — generate the HERO_SPRITE_MAP string (JS / JSON / TS / game)
    ===================================================================== */
 (function (HA) {
   'use strict';
@@ -48,11 +48,68 @@
     return '{\n' + entries.join(',\n') + '\n}';
   }
 
+  function clampInt(v, def, lo) {
+    v = parseInt(v, 10);
+    if (isNaN(v)) return def;
+    lo = (lo == null) ? 1 : lo;
+    return v < lo ? lo : v;
+  }
+
+  // animations object indented under `baseIndent`, with each pair-list inline.
+  function jsonAnimations(map, pretty, baseIndent) {
+    var keys = Object.keys(map);
+    if (!keys.length) return '{}';
+    if (!pretty) return JSON.stringify(map);
+    var ind = baseIndent + '  ';
+    var entries = keys.map(function (k) {
+      return ind + JSON.stringify(k) + ': ' + pairsCompact(map[k]);
+    });
+    return '{\n' + entries.join(',\n') + '\n' + baseIndent + '}';
+  }
+
+  // "Jeux-Math-o" preset: the exact JSON shape the game's SpriteAnimator loads
+  // -> { sheet, cell, cols, flipRightFromLeft, fps:{walk,idle}, animations }.
+  function gameMapString(project) {
+    var g = project.export.game || {};
+    var s = project.slicing;
+    var explicitCell = clampInt(g.cell, 0, 0);
+    var cell = explicitCell > 0 ? explicitCell : clampInt(s.spriteWidth, 1);
+    var cols = clampInt(s.columns, 1);
+    var sheet = g.sheet || './assets/sprites/hero-sheet.png';
+    var fpsWalk = clampInt(g.fpsWalk, 8);
+    var fpsIdle = clampInt(g.fpsIdle, 3);
+    var flip = !!g.flipRightFromLeft;
+    var map = buildMap(project, project.export.includeEmpty);
+
+    if (!project.export.pretty) {
+      var out = {};
+      if (g.comment) out._comment = g.comment;
+      out.sheet = sheet; out.cell = cell; out.cols = cols;
+      out.flipRightFromLeft = flip;
+      out.fps = { walk: fpsWalk, idle: fpsIdle };
+      out.animations = map;
+      return JSON.stringify(out) + '\n';
+    }
+
+    var rows = [];
+    if (g.comment) rows.push('  "_comment": ' + JSON.stringify(g.comment));
+    rows.push('  "sheet": ' + JSON.stringify(sheet));
+    rows.push('  "cell": ' + cell);
+    rows.push('  "cols": ' + cols);
+    rows.push('  "flipRightFromLeft": ' + flip);
+    rows.push('  "fps": { "walk": ' + fpsWalk + ', "idle": ' + fpsIdle + ' }');
+    rows.push('  "animations": ' + jsonAnimations(map, true, '  '));
+    return '{\n' + rows.join(',\n') + '\n}\n';
+  }
+
   function exportString(project) {
     var opt = project.export;
-    var map = buildMap(project, opt.includeEmpty);
     var name = (opt.varName || 'HERO_SPRITE_MAP').trim() || 'HERO_SPRITE_MAP';
 
+    if (opt.format === 'game') {
+      return gameMapString(project);
+    }
+    var map = buildMap(project, opt.includeEmpty);
     if (opt.format === 'json') {
       return jsonBody(map, opt.pretty) + '\n';
     }
@@ -63,12 +120,13 @@
   }
 
   function fileExtension(format) {
-    return format === 'json' ? 'json' : (format === 'ts' ? 'ts' : 'js');
+    return (format === 'json' || format === 'game') ? 'json' : (format === 'ts' ? 'ts' : 'js');
   }
 
   HA.exporter = {
     buildMap: buildMap,
     exportString: exportString,
+    gameMapString: gameMapString,
     fileExtension: fileExtension
   };
 

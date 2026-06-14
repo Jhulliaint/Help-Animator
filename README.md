@@ -4,7 +4,7 @@
 > d'une spritesheet, et générer une map d'animations (`HERO_SPRITE_MAP`) prête à être
 > consommée par un moteur de jeu.
 
-**Statut :** ✅ v1.1.0 — fusionné dans `main`, déployé automatiquement sur Vercel.
+**Statut :** ✅ v1.2.0 — aligné sur le loader réel de Jeux-Math-o (preset d'export + validation). Déployé automatiquement sur Vercel.
 **Stack :** HTML + CSS + JavaScript vanilla, **zéro dépendance, zéro build**.
 **Usage :** ouvrir `index.html` dans un navigateur — aucune installation, aucune ligne de commande.
 
@@ -42,7 +42,8 @@ Site statique prêt à l'emploi (`index.html` à la racine + `vercel.json`). Voi
 
 ## 🕹️ Utilisation
 
-1. **Importer** une spritesheet (bouton ou glisser-déposer dans le panneau de droite).
+1. **Importer** une spritesheet (bouton ou glisser-déposer). Pas de fichier sous la main ?
+   **🧪 Charger un exemple** génère une feuille de démonstration 8×5 (sans fichier ni dépendance).
 2. **Régler le découpage** : largeur/hauteur de sprite, colonnes, lignes, marges,
    espacements. Boutons *Déduire la grille* / *Déduire la taille* pour s'aider de la
    taille de l'image.
@@ -54,7 +55,9 @@ Site statique prêt à l'emploi (`index.html` à la racine + `vercel.json`). Voi
 5. **Réordonner / retirer** les frames par glisser-déposer ou via le ✕ d'une frame
    (le sprite source reste intact). Nombre de frames par animation **illimité**.
 6. **Prévisualiser** en bas : lecture/pause, FPS, boucle, frame courante, zoom.
-7. **Exporter** (`Exporter` ou `Ctrl+E`) en JS / JSON / TS, copier ou télécharger.
+7. **Exporter** (`Exporter` ou `Ctrl+E`) au format **Jeux-Math-o** / JS / JSON / TS. Un
+   **panneau de validation** signale les frames hors grille et les animations attendues par
+   le jeu mais manquantes ou vides. Copier ou télécharger.
 8. **Sauvegarder / Ouvrir** un projet `.spritemap.json` (l'image est embarquée).
    Auto-sauvegarde permanente dans le navigateur.
 
@@ -107,8 +110,26 @@ export const HERO_SPRITE_MAP = {
 } as const;
 ```
 
-Options d'export : nom de variable, mise en forme aérée, inclusion des animations vides.
-Boutons **Copier** et **Télécharger** (`.js` / `.json` / `.ts`).
+**Jeux-Math-o (preset)** — l'enveloppe JSON exacte chargée par le `SpriteAnimator` du jeu :
+```json
+{
+  "sheet": "./assets/sprites/hero-sheet.png",
+  "cell": 192,
+  "cols": 8,
+  "flipRightFromLeft": false,
+  "fps": { "walk": 8, "idle": 3 },
+  "animations": {
+    "idle_down": [[4, 0], [4, 3], [4, 4]],
+    "walk_down": [[0, 2], [0, 3], [1, 5], [0, 7]]
+  }
+}
+```
+Champs éditables : chemin de la feuille, `cell` (taille de cellule carrée — `auto` = largeur
+de sprite), `fps.walk` / `fps.idle`, et la bascule `flipRightFromLeft`. Le téléchargement
+nomme le fichier **`hero_sprite_map.json`** ; il se dépose tel quel dans `assets/sprites/`.
+
+Options communes : nom de variable (JS/TS), mise en forme aérée, inclusion des animations
+vides. Boutons **Copier** et **Télécharger** (`.js` / `.json` / `.ts`).
 
 ---
 
@@ -118,29 +139,39 @@ Cet outil sert à produire les animations du **chevalier** utilisées dans le je
 [`Jhulliaint/Jeux-Math-o`](https://github.com/Jhulliaint/Jeux-Math-o) (« Un jeu vidéo
 pour Mathéo »).
 
-**Spritesheet de référence** (telle que configurée pendant l'usage réel) :
-- Fichier : `Grill animation.png` — **411 × 258 px**
-- Découpage : **51 × 51 px**, **8 colonnes × 5 lignes** (40 cases, ids `00`–`39`),
-  marges/espacements à 0.
-- Personnage : chevalier (plume orange, armure bleue, cape rouge, épée/bouclier).
+**Source de vérité — comment le jeu consomme la map.** Le jeu charge un **fichier JSON**
+`assets/sprites/hero_sprite_map.json` via `systems/SpriteAnimator.js` (`fetch().json()`) :
 
-**Consommer la map dans le jeu** (exemple de principe, moteur 2D Canvas) :
-```js
-const FRAME_W = 51, FRAME_H = 51, COLS = 8; // doivent correspondre au découpage
-function drawFrame(ctx, sheet, [row, col], dx, dy, scale = 1) {
-  ctx.imageSmoothingEnabled = false; // pixel art net
-  ctx.drawImage(sheet, col * FRAME_W, row * FRAME_H, FRAME_W, FRAME_H,
-                dx, dy, FRAME_W * scale, FRAME_H * scale);
+```json
+{
+  "sheet": "./assets/sprites/hero-sheet.png",
+  "cell": 192,
+  "cols": 8,
+  "flipRightFromLeft": false,
+  "fps": { "walk": 8, "idle": 3 },
+  "animations": { "idle_down": [[4,0],[4,3],[4,4]], "…": [] }
 }
-// Lecture en boucle d'une animation à N FPS :
-const frames = HERO_SPRITE_MAP.walk_left;
-const i = Math.floor(performance.now() / (1000 / fps)) % frames.length;
-drawFrame(ctx, sheet, frames[i], x, y, 2);
 ```
+- `cell` est **un seul nombre** : cellule **carrée** (`sx = col·cell`, `sy = row·cell`).
+- `fps` est un objet **par catégorie** `{ walk, idle }` — *pas* un FPS par animation.
+  L'attaque suit la durée de l'arme ; la garde retombe sur `idle`.
+- `flipRightFromLeft: true` réutilise les `*_left` en miroir pour les `*_right` absents.
+- Coordonnées `[ligne, colonne]`, base 0 — **identiques à la sortie de l'outil**.
 
-> ⚠️ Le **frame size** et le **nombre de colonnes** côté jeu doivent être identiques à
-> ceux du découpage de l'outil, sinon les coordonnées `[ligne, colonne]` ne pointeront
-> pas sur les bons sprites.
+**Clés réellement demandées** par `Hero._animKey()` : les **16** combinaisons
+`{idle, walk, attack, guard} × {down, up, left, right}` (ce sont les noms d'animations par
+défaut de l'outil). `idle_down` est le repli ultime ; les `guard_*` autres que `guard_down`
+retombent proprement sur `idle_<dir>`.
+
+**→ Le preset d'export « Jeux-Math-o » produit exactement ce JSON.** La sortie se dépose
+telle quelle dans `assets/sprites/hero_sprite_map.json`, et le **panneau de validation**
+vérifie en amont que ces clés sont présentes et que les frames tiennent dans la grille.
+
+**Deux feuilles, une grille.** L'art brut (`Grill animation.png`, 411×258, cases 51×51, 8×5,
+chevalier : plume orange, armure bleue, cape rouge) est nettoyé puis agrandi par le jeu en
+`hero-sheet.png` (**1536×960**, cases **192×192**, même grille 8×5). Les coordonnées
+`[ligne, colonne]` étant indépendantes de la taille de case, réglez `cell` sur la feuille
+**réellement chargée par le jeu** (192).
 
 ---
 
@@ -162,8 +193,12 @@ drawFrame(ctx, sheet, frames[i], x, y, 2);
 6. **Drag & drop** — payload conservé dans `HA.dnd` (fiable en `file://`). Sprite →
    `{kind:'sprite', spriteIds}` ; frame → `{kind:'frame', animId, index}`. Index
    d'insertion calculé d'après la frame survolée.
-7. **Export** — `animations → { name: [[row,col]…] }`, rendu JS/JSON/TS, copie
-   presse-papiers (avec repli `execCommand`) et téléchargement.
+7. **Export & validation** — `animations → { name: [[row,col]…] }`, rendu JS/JSON/TS plus
+   un **preset « Jeux-Math-o »** qui émet l'enveloppe JSON exacte du `SpriteAnimator` du jeu
+   (`{ sheet, cell, cols, flipRightFromLeft, fps, animations }`). Un validateur **pur**
+   (`validate.js`) confronte le projet au contrat du jeu (frames hors grille, cellule non
+   carrée, clés attendues absentes/vides) avant l'export. Copie presse-papiers (repli
+   `execCommand`) et téléchargement.
 
 ---
 
@@ -181,13 +216,15 @@ Help-Animator/
     ├── slicer.js     # géométrie de découpage (pure)
     ├── sheet.js      # image + cache de vignettes
     ├── parse.js      # parseur de saisie manuelle
-    ├── exporter.js   # génération JS / JSON / TS
+    ├── exporter.js   # génération JS / JSON / TS / preset Jeux-Math-o
+    ├── validate.js   # contrôles pré-export (pure) : grille, clés attendues par le jeu
     ├── project.js    # sauvegarde / chargement + autosave
     ├── actions.js    # couche de commandes (toute mutation)
     ├── dnd.js        # payload de drag partagé
     ├── spriteGrid.js # grille centrale numérotée
     ├── animations.js # panneau d'animations (accordéon)
     ├── preview.js    # lecteur d'animation
+    ├── example.js    # génère une feuille de démonstration (canvas → data URL)
     └── app.js        # amorçage & câblage de l'UI
 ```
 
@@ -203,7 +240,11 @@ type ProjectData     = {
   slicing: { spriteWidth, spriteHeight, columns, rows, marginX, marginY, spacingX, spacingY },
   animations: AnimationDef[],
   preview: { fps, loop, scale },
-  export:  { format, varName, pretty, includeEmpty, padIds }
+  export:  {
+    format, varName, pretty, includeEmpty, padIds,
+    // preset Jeux-Math-o (format = 'game')
+    game: { sheet, cell, flipRightFromLeft, fpsWalk, fpsIdle, comment }
+  }
 };
 ```
 

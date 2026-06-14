@@ -216,6 +216,11 @@
       Object.assign(P().export, patch);
       after('export-opt');
     },
+    updateExportGame: function (patch) {
+      if (!P().export.game) P().export.game = HA.defaultProject().export.game;
+      Object.assign(P().export.game, patch);
+      after('export-opt');
+    },
     updatePreview: function (patch) {
       Object.assign(P().preview, patch);
       after('preview-opt');

@@ -8,6 +8,43 @@ et le projet suit un [versionnage sémantique](https://semver.org/lang/fr/).
 ## [Non publié]
 - (rien pour l'instant)
 
+## [1.2.0] — 2026-06-14
+### Added
+- **Preset d'export « Jeux-Math-o »** (4ᵉ format, à côté de JS/JSON/TS) : produit
+  exactement le JSON chargé par le `SpriteAnimator` du jeu —
+  `{ sheet, cell, cols, flipRightFromLeft, fps:{walk,idle}, animations }`. Champs
+  éditables : chemin de la feuille (défaut `./assets/sprites/hero-sheet.png`), taille de
+  cellule `cell` (auto = largeur de sprite), `fps.walk` / `fps.idle` (8 / 3), bascule
+  `flipRightFromLeft`. Le téléchargement nomme le fichier `hero_sprite_map.json`.
+- **Validation pré-export** (`validate.js`, pure + panneau sous l'aperçu d'export) :
+  frames hors grille (**erreur**), sprites non carrés (le jeu suppose une cellule carrée),
+  grille dépassant l'image, et surtout **animations attendues par le jeu mais absentes ou
+  vides** — `idle_down` manquante = erreur (repli ultime), `idle`/`walk`/`attack` =
+  avertissement, `guard_up/left/right` = info (repli sur `idle`). Respecte
+  `flipRightFromLeft` (un `*_right` vide miroir d'un `*_left` rempli n'est pas signalé).
+- **Bouton « 🧪 Charger un exemple »** (`example.js`) : génère au vol une feuille de
+  démonstration 8×5 (canvas → data URL, sans fichier ni dépendance, compatible `file://`),
+  règle le découpage et ajoute les animations par défaut pour essayer l'outil tout de suite.
+
+### Changed
+- **Liste d'animations par défaut alignée sur le jeu** : les **16** clés réellement
+  demandées par `Hero._animKey()` — `{idle,walk,attack,guard} × {down,up,left,right}` —
+  remplacent l'ancienne liste de 18 (qui contenait `hurt`/`death`/`cast_spell`/`dash_*`
+  inutilisés et omettait `guard_up/left/right`).
+- Le champ « Nom de variable » est masqué pour les formats JSON et Jeux-Math-o
+  (sans objet pour une sortie JSON).
+- **README** : la section « Lien avec Jeux-Math-o » documente désormais le **vrai** contrat
+  (loader `SpriteAnimator`, `cell` carré 192, `fps` par catégorie, 16 clés, miroir) au lieu
+  de l'ancien exemple « de principe » à 51 px.
+
+### Verification
+- **22 tests logiques** (Node + shim `window`) : structure du preset, JSON valide en mode
+  aéré et compact, `cell` auto/explicite, `_comment`, et toutes les règles de validation
+  (hors-grille, non-carré, miroir flip, clés manquantes).
+- **20 tests UI** (jsdom + shim Canvas, scripts inlinés) : 16 animations par défaut,
+  bascule du panneau preset, sortie JSON enveloppée valide, rendu du panneau de validation,
+  édition live des champs du preset, générateur d'exemple — **aucune erreur d'exécution**.
+
 ## [1.1.0] — 2026-06-14
 ### Changed
 - **Échange des panneaux** : les animations passent à **gauche** et l'import +
@@ -57,5 +94,6 @@ et le projet suit un [versionnage sémantique](https://semver.org/lang/fr/).
   assets) — déploiement statique sans build.
 
 [Non publié]: https://github.com/Jhulliaint/Help-Animator/compare/main...HEAD
+[1.2.0]: https://github.com/Jhulliaint/Help-Animator/compare/main...claude/peaceful-curie-t06vtb
 [1.1.0]: https://github.com/Jhulliaint/Help-Animator/pull/2
 [1.0.0]: https://github.com/Jhulliaint/Help-Animator/pull/1

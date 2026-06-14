@@ -353,6 +353,47 @@ input[type="checkbox"] { accent-color: var(--cyan); width: 16px; height: 16px; }
   white-space: pre; overflow: auto;
 }
 
+/* full-width small button (e.g. "load example") */
+.btn.full { width: 100%; margin-top: 8px; justify-content: center; }
+
+/* highlight the game-target format option */
+.seg label.seg-game { box-shadow: inset 0 0 0 1px rgba(54,226,226,.45); }
+.seg label.seg-game:has(input:checked) { background: linear-gradient(135deg, var(--cyan), var(--violet)); }
+
+/* "Jeux-Math-o" preset panel */
+.export-game {
+  border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px;
+  background: var(--bg-1); display: flex; flex-direction: column; gap: 10px;
+}
+.export-game .hint { margin: 0; }
+.game-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
+.game-grid .field span { font-size: .74rem; color: var(--muted); }
+.game-grid input {
+  font: inherit; color: var(--text); background: #0b0916;
+  border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; width: 100%;
+}
+
+/* pre-export validation report */
+.export-validation { display: flex; flex-direction: column; gap: 8px; }
+.export-validation .vld.ok {
+  color: var(--lime); font-size: .85rem; font-weight: 600;
+  border: 1px solid rgba(182,255,93,.4); border-radius: 9px; padding: 9px 12px;
+  background: rgba(182,255,93,.06);
+}
+.vld-summary { display: flex; gap: 8px; flex-wrap: wrap; }
+.vld-summary .b { font-size: .78rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--border); }
+.vld-summary .b.err { color: var(--red); border-color: rgba(255,93,108,.5); }
+.vld-summary .b.wrn { color: var(--amber); border-color: rgba(255,180,84,.5); }
+.vld-summary .b.inf { color: var(--cyan); border-color: rgba(54,226,226,.5); }
+.vld-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; max-height: 220px; overflow: auto; }
+.vld-list li {
+  font-size: .78rem; line-height: 1.45; padding: 6px 10px; border-radius: 8px;
+  background: var(--bg-1); border-left: 3px solid var(--border);
+}
+.vld-list li.error { border-left-color: var(--red); color: #ffd0d5; }
+.vld-list li.warn  { border-left-color: var(--amber); color: #ffe6c2; }
+.vld-list li.info  { border-left-color: var(--cyan); color: #cdeeee; }
+
 /* ----------------------------- Toasts ----------------------------- */
 .toast-container { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 200; align-items: center; }
 .toast {
