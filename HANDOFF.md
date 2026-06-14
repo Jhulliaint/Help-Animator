@@ -1,126 +1,123 @@
 # 🤝 Prompt de reprise — à coller dans une nouvelle session
 
-> **Mode d'emploi**
-> 1. Ouvre une **nouvelle session Claude Code** sur le dépôt **`Jhulliaint/Jeux-Math-o`**
->    (sur claude.ai/code, choisis ce dépôt comme source ; s'il n'apparaît pas, autorise-le
->    pour l'app GitHub de Claude Code dans les réglages de connexion).
-> 2. Colle **tout le bloc ci-dessous** comme premier message.
+> **Objectif de la nouvelle session :** *continuer le développement de **Help-Animator***
+> (ce dépôt) en s'appuyant **en lecture seule** sur le dépôt du jeu **Jeux-Math-o** pour
+> perfectionner l'outil. Cette nouvelle session **remplace** la session actuelle.
 >
-> Ce prompt contient l'intégralité du contexte du projet **Help-Animator** : la nouvelle
-> instance n'a pas accès à ce dépôt, mais elle aura tout ce qu'il faut pour intégrer les
-> sprites dans le jeu.
+> **Mode d'emploi**
+> 1. Ouvre une **nouvelle session Claude Code sur `Jhulliaint/Help-Animator`** (dépôt de travail principal).
+> 2. **Ajoute `Jhulliaint/Jeux-Math-o` au périmètre de la session en LECTURE SEULE** (source
+>    de vérité sur ce dont le jeu a besoin). ⚠️ Une **autre instance développe déjà le jeu** :
+>    Help-Animator ne doit **que lire** Jeux-Math-o, jamais le modifier.
+> 3. Colle **tout le bloc ci-dessous** comme premier message.
 
 ---
 
 ```
-CONTEXTE — DEUX PROJETS LIÉS
+RÔLE & ÉTAT
 
-J'ai deux dépôts GitHub (compte Jhulliaint) :
+Tu reprends et continues le développement de Help-Animator (CE DÉPÔT, Jhulliaint/Help-Animator).
+Tu remplaces une session précédente : ce message contient l'état complet pour ne rien perdre.
 
-1. Help-Animator (Jhulliaint/Help-Animator) — TERMINÉ. C'est un OUTIL que j'ai construit
-   pour découper une spritesheet, affecter les sprites à des animations nommées, et
-   exporter une map d'animations « HERO_SPRITE_MAP ». Site statique HTML/CSS/JS vanilla,
-   déployé sur Vercel. Tu n'as pas accès à ce dépôt, mais tu n'en as pas besoin : tout son
-   contexte utile est dans ce message.
+Help-Animator est un OUTIL web local (HTML/CSS/JS vanilla, zéro build, zéro dépendance) qui
+découpe une spritesheet, affecte les sprites à des animations nommées (drag & drop ou saisie),
+prévisualise le mouvement, et exporte une map « HERO_SPRITE_MAP ». Version actuelle : v1.1.0,
+fusionnée dans main (PR #1, #2, #3), déployée en statique sur Vercel. S'ouvre en double-cliquant
+index.html (aucune ligne de commande).
 
-2. Jeux-Math-o (CE DÉPÔT) — « Un jeu vidéo pour Mathéo », un jeu de maths en JavaScript.
-   C'est ici qu'on veut UTILISER les animations du personnage (un chevalier) produites par
-   Help-Animator.
+PROJET COMPLÉMENTAIRE (LECTURE SEULE)
 
-MISSION DE CETTE SESSION
+Jeux-Math-o (Jhulliaint/Jeux-Math-o) est le JEU de maths (« Un jeu vidéo pour Mathéo », JS) qui
+CONSOMME la sortie de Help-Animator (animations du chevalier). Une AUTRE instance développe déjà
+ce jeu en parallèle. ⚠️ Tu ne dois PAS modifier Jeux-Math-o : tu le LIS uniquement, comme source
+de vérité sur ce dont le jeu a réellement besoin.
 
-A. Analyse d'abord ce dépôt (Jeux-Math-o) en profondeur et fais-moi une synthèse :
-   - structure du projet, moteur/techno utilisée (Canvas brut, Phaser, Kaboom, autre ?),
-     boucle de jeu, gestion des entrées ;
-   - comment les sprites/animations du personnage sont gérés AUJOURD'HUI (s'il y en a) :
-     où, sous quel format, à quelle taille de frame, à quel FPS ;
-   - où et comment le rendu du personnage est dessiné.
+MISSION — perfectionner Help-Animator en t'appuyant sur le contenu réel de Jeux-Math-o
 
-B. Propose ensuite un plan d'intégration des animations du chevalier via la map
-   HERO_SPRITE_MAP (format ci-dessous), puis implémente-le sur une branche dédiée avec une
-   PR (draft). Ne casse pas le gameplay existant ; ajoute proprement.
+1. Lis Jeux-Math-o et identifie précisément comment il consomme les sprites/animations :
+   - le format de données attendu (structure JS/JSON, noms des clés, ordre des frames),
+   - la taille de frame, le nombre de colonnes, le découpage attendu,
+   - la convention de nommage des animations (idle_down, walk_left, … ?) et des directions,
+   - le code du loader/rendu (comment il lit la map, à quel FPS, boucle ou non),
+   - les états/animations que le jeu utilise réellement (et ceux qui manquent).
 
-C. Liste les ajouts / corrections / améliorations / fonctionnalités pertinents que tu
-   repères pendant l'analyse (gameplay, structure, performance, ergonomie, sprites), et
-   dis-moi lesquels tu recommandes en priorité avant de les coder.
+2. Aligne et étends Help-Animator pour que sa sortie s'intègre SANS FRICTION dans le jeu :
+   - ajoute si besoin un PRESET d'export calé exactement sur le loader du jeu
+     (même structure, mêmes noms de clés, même taille de frame),
+   - propose des noms d'animations par défaut alignés sur ceux du jeu,
+   - ajoute des validations (frames hors grille, animations attendues par le jeu mais
+     absentes ou vides, incohérence de taille/colonnes…),
+   - tout ce qui réduit l'écart entre « ce que l'outil produit » et « ce que le jeu attend ».
 
-CE QU'EST HELP-ANIMATOR ET CE QU'IL PRODUIT
+3. Améliore l'outil de façon générale (ergonomie, fonctionnalités, robustesse) selon ce que
+   l'usage réel révèle. Montre-moi tes propositions priorisées AVANT de coder les gros morceaux ;
+   les petits correctifs sûrs, fais-les directement.
 
-- But : corriger les incohérences d'animation en choisissant manuellement les bons sprites,
-  dans le bon ordre, pour chaque animation nommée.
-- Convention de coordonnées : id = ligne × colonnes + colonne ; les frames sont exportées
-  en [ligne, colonne] (row, col), indexées à partir de 0.
-- Animations par défaut proposées : idle_down/up/left/right, walk_down/up/left/right,
-  attack_down/up/left/right, guard_down, hurt, death, cast_spell, dash_left, dash_right.
-  (La liste est libre : on peut en ajouter/retirer.)
-- Nombre de frames par animation illimité (3, 4, ou plus).
+CONTRAINTES
+- LECTURE SEULE sur Jeux-Math-o (une autre instance y travaille — ne crée aucun conflit, n'y pousse rien).
+- Développe sur la branche dédiée de ta session ; commits clairs ; PR en draft vers main.
+- Garde l'esprit du projet : local, sans build, sans dépendance ; compatible file:// ET Vercel.
 
-SPRITESHEET DE RÉFÉRENCE (le chevalier)
+────────────────────────────────────────────────────────────
+CONTEXTE TECHNIQUE COMPLET DE HELP-ANIMATOR (reprise sans perte)
+────────────────────────────────────────────────────────────
 
-- Fichier : « Grill animation.png », 411 × 258 px.
-- Découpage : 51 × 51 px par sprite, 8 colonnes × 5 lignes = 40 cases (ids 00–39),
-  marges et espacements à 0. (Quelques cases en fin de planche sont vides.)
-- Personnage : chevalier, plume orange, armure bleue, cape rouge, épée/bouclier.
-- IMPORTANT : côté jeu, le frame size (51 × 51) et le nombre de colonnes (8) doivent
-  correspondre exactement à ce découpage, sinon les coordonnées [ligne, colonne] ne
-  pointeront pas sur les bons sprites.
+Architecture : modules à responsabilité unique sous le namespace global HA, chargés comme
+<script> classiques (compatibles file://). Flux unidirectionnel UI → actions → store → emit → render.
+  js/state.js      modèle + store observable + undo/redo
+  js/slicer.js     géométrie de découpage (pure, sans DOM)
+  js/sheet.js      image + cache de vignettes par cellule
+  js/parse.js      parseur de saisie manuelle (ids "0,1,2" / "00 01" / "[0,0],[1,3]")
+  js/exporter.js   génération JS / JSON / TS   ← point d'extension pour un preset « jeu »
+  js/project.js    sauvegarde/chargement .spritemap.json + autosave localStorage
+  js/actions.js    couche de commandes (TOUTE mutation passe par là : historique + autosave)
+  js/dnd.js        payload de drag partagé (fiable en file://)
+  js/spriteGrid.js grille centrale numérotée + sélection multiple
+  js/animations.js panneau d'animations (accordéon : seule l'animation active est dépliée)
+  js/preview.js    lecteur d'animation (play/pause, FPS, boucle, frame courante, zoom)
+  js/app.js        amorçage & câblage de l'UI (import, slicing, export modale, raccourcis)
+  index.html, styles.css, vercel.json, README.md, CHANGELOG.md, HANDOFF.md
 
-FORMAT DE LA MAP (exemple — je te fournirai la version finale exportée de l'outil)
+Convention : id = ligne × colonnes + colonne ; frames exportées en [ligne, colonne], base 0.
 
-const HERO_SPRITE_MAP = {
-  idle_down:  [[4, 0], [4, 3], [4, 4]],
-  idle_up:    [[1, 0], [3, 6], [3, 7]],
-  idle_left:  [[4, 1], [3, 1], [2, 1]],
-  idle_right: [[4, 2], [3, 2], [2, 7]],
-  walk_down:  [[0, 2], [0, 3], [1, 5], [0, 7]],
-  walk_up:    [[1, 0], [3, 5], [3, 6], [3, 7]],
-  walk_left:  [[2, 1], [3, 0], [3, 1], [4, 1]],
-  walk_right: [[2, 7], [3, 2], [4, 2], [0, 6]],
-  attack_down:[[4, 0], [3, 3], [3, 4], [4, 3]],
-  attack_up:  [[0, 0], [0, 1], [1, 2], [1, 3]],
-  attack_left:[[2, 0], [2, 5], [1, 6]],
-  attack_right:[[1, 7], [2, 6], [2, 4]],
-  guard_down: [[0, 2], [0, 3], [4, 3]]
-};
-// (Ces valeurs sont l'EXEMPLE de référence. La map réelle/corrigée vient de l'outil
-//  Help-Animator ; je te la collerai, ou exporte-la depuis l'app si besoin.)
+Modèle de données :
+  Frame      = { spriteId, row, col }
+  Animation  = { id, name, frames[], fps, loop }
+  Project    = { version, spriteSheetName, imageDataUrl,
+                 slicing:{spriteWidth,spriteHeight,columns,rows,marginX,marginY,spacingX,spacingY},
+                 animations[], preview:{fps,loop,scale}, export:{format,varName,pretty,includeEmpty,padIds} }
 
-CONSOMMER LA MAP DANS LE JEU (principe, Canvas 2D)
+Sortie HERO_SPRITE_MAP (JS / JSON / TS), ex. :
+  const HERO_SPRITE_MAP = { idle_down: [[4,0],[4,3],[4,4]], walk_down: [[0,2],[0,3],[1,5],[0,7]] };
 
-const FRAME_W = 51, FRAME_H = 51; // = découpage de l'outil
-function drawFrame(ctx, sheet, [row, col], dx, dy, scale = 1) {
-  ctx.imageSmoothingEnabled = false;            // pixel art net
-  ctx.drawImage(sheet, col * FRAME_W, row * FRAME_H, FRAME_W, FRAME_H,
-                dx, dy, FRAME_W * scale, FRAME_H * scale);
-}
-// Lecture en boucle à N FPS :
-const frames = HERO_SPRITE_MAP[animName];
-const i = Math.floor(performance.now() / (1000 / fps)) % frames.length;
-drawFrame(ctx, sheet, frames[i], x, y, scale);
+Spritesheet de référence : « Grill animation.png » 411×258, sprites 51×51, 8 colonnes × 5 lignes,
+marges/espaces 0 ; chevalier (plume orange, armure bleue, cape rouge, épée/bouclier).
 
-DÉTAILS UTILES SUR L'OUTIL (si tu dois régénérer ou comprendre)
+Lancer & tester :
+  - Usage : ouvrir index.html (ou la prod Vercel).
+  - Test logique : Node sur slicer/parse/exporter avec un shim { window:{} }.
+  - Test UI headless : jsdom (runScripts:'dangerously', pretendToBeVisual) + shim Canvas
+    (getContext/toDataURL), js/*.js inlinés, puis vérifier le rendu sans erreur.
+    (C'est ainsi que la v1.1.0 a été validée : 18 cartes, accordéon, 0 erreur.)
 
-- Export possible en JS (const ... = {...}), JSON strict, ou TS (export const ... as const).
-- L'outil sauvegarde un projet .spritemap.json auto-contenu (image embarquée en data URL).
-- Modèle de données interne :
-  Frame = { spriteId, row, col } ; Animation = { id, name, frames[], fps, loop }.
-- L'outil est déployé : je peux te donner l'URL de prod Vercel, ou tu peux ouvrir
-  index.html localement depuis le dépôt Help-Animator.
+État Git : main = v1.1.0 (Initial → PR#1 outil → PR#2 UI/accordéon → PR#3 docs). Déploiement
+Vercel automatique sur main. Voir README.md et CHANGELOG.md pour le détail.
 
-CONTRAINTES & ATTENTES
+PISTES D'AMÉLIORATION DÉJÀ ENVISAGÉES (à confronter au repo du jeu)
+  - Preset d'export « format Jeux-Math-o » calé sur le loader réel du jeu.
+  - Validation : signaler les animations attendues par le jeu mais absentes/vides.
+  - Bouton « charger la spritesheet d'exemple » (le chevalier).
+  - Workflow GitHub Actions de validation (lint / exécution du test jsdom).
+  - Projet de démarrage pré-rempli avec un HERO_SPRITE_MAP d'exemple.
 
-- Travaille sur une branche dédiée, fais des commits clairs, ouvre une PR draft.
-- Avant de coder l'intégration, montre-moi : (1) ta synthèse de Jeux-Math-o, (2) le plan
-  d'intégration, (3) la liste d'améliorations recommandées. Puis implémente.
-- Conserve le mapping des noms d'animations cohérent avec HERO_SPRITE_MAP.
-
-Commence par analyser le dépôt et donne-moi ta synthèse.
+Commence par : (1) lire Jeux-Math-o et me résumer comment il consomme les animations,
+(2) me proposer le plan d'alignement + les améliorations priorisées. Puis implémente.
 ```
 
 ---
 
 ## Notes pour moi (hors prompt)
-- Help-Animator est fusionné dans `main` (PR #1 et #2) et déployé sur Vercel.
-- Si je veux la map réelle corrigée : l'exporter depuis l'app (bouton **Exporter**), puis
-  la coller dans la nouvelle session à la place de l'exemple.
-- Le dépôt `Jeux-Math-o` a au moins **1 issue ouverte** au moment de la rédaction.
+- La nouvelle session se fait **sur Help-Animator**, avec **Jeux-Math-o ajouté en lecture seule**.
+- Une autre instance code déjà le jeu → Help-Animator **lit** seulement Jeux-Math-o.
+- État actuel : Help-Animator v1.1.0 fusionné dans `main` (PR #1, #2, #3), déployé sur Vercel.
+- Si besoin de la map réelle/corrigée : l'exporter depuis l'app (bouton **Exporter**).
