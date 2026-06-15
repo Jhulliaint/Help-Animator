@@ -8,7 +8,9 @@
 
   var RERENDER = {
     'image': 1, 'slicing': 1, 'project-loaded': 1, 'history': 1,
-    'select-sprite': 1, 'zoom': 1, 'init': 1
+    'select-sprite': 1, 'zoom': 1, 'init': 1,
+    // keep the "used by the active animation" highlight in sync
+    'anim-select': 1, 'frame-change': 1, 'anim-add': 1, 'anim-remove': 1
   };
 
   function pad(n) {
@@ -30,6 +32,17 @@
       return;
     }
 
+    // Sprites used by the currently selected animation — matched by row/col
+    // (stable even if the column count later changes). Value = how many times.
+    var activeAnim = HA.store.state.project.animations.find(function (a) { return a.id === rt.selectedAnimationId; });
+    var used = {};
+    if (activeAnim) {
+      activeAnim.frames.forEach(function (f) {
+        var k = f.row + ':' + f.col;
+        used[k] = (used[k] || 0) + 1;
+      });
+    }
+
     var frag = document.createDocumentFragment();
     cells.forEach(function (cell) {
       var el = document.createElement('div');
@@ -37,6 +50,17 @@
       el.dataset.spriteId = cell.id;
       el.draggable = true;
       if (rt.selectedSpriteIds.has(cell.id)) el.classList.add('selected');
+
+      var uCount = used[cell.row + ':' + cell.col];
+      if (uCount) {
+        el.classList.add('in-anim');
+        if (uCount > 1) {
+          var badge = document.createElement('span');
+          badge.className = 'in-anim-badge';
+          badge.textContent = '×' + uCount;
+          el.appendChild(badge);
+        }
+      }
 
       var thumb = document.createElement('div');
       thumb.className = 'sprite-thumb';

@@ -48,7 +48,14 @@
     var reader = new FileReader();
     reader.onload = function () {
       HA.actions.setImage(file.name, reader.result).then(function () {
-        HA.toast('Image chargée : ' + file.name, 'ok');
+        var p = HA.presets && HA.presets.findForSheet(file.name);
+        if (p) {
+          HA.presets.apply(p.id);
+          refreshPresetSelect(p.id);
+          HA.toast('Découpe « ' + p.name + ' » restaurée pour ' + file.name, 'ok');
+        } else {
+          HA.toast('Image chargée : ' + file.name, 'ok');
+        }
       }).catch(function () { HA.toast('Impossible de charger l\'image', 'error'); });
     };
     reader.readAsDataURL(file);
@@ -403,6 +410,72 @@
     });
   }
 
+  /* ----------------------------- slicing presets ----------------------------- */
+  function refreshPresetSelect(selectedId) {
+    var sel = document.getElementById('preset-select');
+    if (!sel) return;
+    var opts = ['<option value="">— choisir une découpe —</option>'];
+    HA.presets.all().forEach(function (p) {
+      var label = p.name + ' (' + p.slicing.columns + '×' + p.slicing.rows + ')';
+      opts.push('<option value="' + p.id + '">' + escapeHtml(label) + '</option>');
+    });
+    sel.innerHTML = opts.join('');
+    if (selectedId) sel.value = selectedId;
+  }
+
+  function bindPresets() {
+    var sel = document.getElementById('preset-select');
+    sel.addEventListener('change', function () {
+      if (!sel.value) return;
+      if (HA.presets.apply(sel.value)) {
+        var p = HA.presets.get(sel.value);
+        HA.toast('Découpe « ' + (p ? p.name : '') + ' » appliquée', 'ok');
+      }
+    });
+    document.getElementById('btn-preset-save').addEventListener('click', function () {
+      var p = HA.presets.saveCurrent();
+      refreshPresetSelect(p.id);
+      HA.toast('Découpe enregistrée : « ' + p.name + ' » — renommez-la si besoin', 'ok');
+    });
+    document.getElementById('btn-preset-rename').addEventListener('click', function () {
+      if (!sel.value) { HA.toast('Sélectionnez une découpe', 'info'); return; }
+      var p = HA.presets.get(sel.value);
+      var name = window.prompt('Nouveau nom de la découpe :', p ? p.name : '');
+      if (name && name.trim()) { HA.presets.rename(sel.value, name.trim()); refreshPresetSelect(sel.value); }
+    });
+    document.getElementById('btn-preset-del').addEventListener('click', function () {
+      if (!sel.value) { HA.toast('Sélectionnez une découpe', 'info'); return; }
+      var p = HA.presets.get(sel.value);
+      if (window.confirm('Supprimer la découpe « ' + (p ? p.name : '') + ' » ?')) {
+        HA.presets.remove(sel.value);
+        refreshPresetSelect();
+        HA.toast('Découpe supprimée', 'info');
+      }
+    });
+    document.getElementById('btn-preset-export').addEventListener('click', function () {
+      HA.project.download('slicing-presets.json', HA.presets.exportJSON(), 'application/json');
+      HA.toast('slicing-presets.json téléchargé — committez-le dans le repo', 'ok');
+    });
+    document.getElementById('btn-preset-import').addEventListener('click', function () {
+      document.getElementById('file-presets').click();
+    });
+    document.getElementById('file-presets').addEventListener('change', function (e) {
+      var f = e.target.files[0];
+      if (f) {
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            var n = HA.presets.importJSON(reader.result);
+            refreshPresetSelect();
+            HA.toast(n ? (n + ' découpe(s) importée(s)') : 'Aucune découpe dans le fichier', n ? 'ok' : 'info');
+          } catch (err) { HA.toast('Fichier illisible (JSON invalide)', 'error'); }
+        };
+        reader.readAsText(f);
+      }
+      e.target.value = '';
+    });
+  }
+
   /* ----------------------------- boot ----------------------------- */
   function boot() {
     bindTopbar();
@@ -411,6 +484,7 @@
     bindRightHeader();
     bindFileInputs();
     bindExportModal();
+    bindPresets();
     bindKeyboard();
 
     // keep top-level chrome in sync with every state change
@@ -430,6 +504,9 @@
     HA.spriteGrid.init();
     HA.animations.init();
     HA.preview.init();
+
+    refreshPresetSelect();
+    HA.presets.loadSeed().then(function () { refreshPresetSelect(); });
 
     // initial project: autosave if present, else fresh with default animations
     var restored = HA.project.loadAutosave();

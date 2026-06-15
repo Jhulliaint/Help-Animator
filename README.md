@@ -4,7 +4,7 @@
 > d'une spritesheet, et générer une map d'animations (`HERO_SPRITE_MAP`) prête à être
 > consommée par un moteur de jeu.
 
-**Statut :** ✅ v1.3.0 — aligné sur Jeux-Math-o (preset + validation) ; rognage, aperçu miroir, verrou & fusion d'animations. Déployé sur Vercel.
+**Statut :** ✅ v1.4.0 — aligné sur Jeux-Math-o (preset + validation) ; rognage, miroir, verrou/fusion, **découpes enregistrées** & **surbrillance des sprites affectés**. Déployé sur Vercel.
 **Stack :** HTML + CSS + JavaScript vanilla, **zéro dépendance, zéro build**.
 **Usage :** ouvrir `index.html` dans un navigateur — aucune installation, aucune ligne de commande.
 
@@ -47,11 +47,15 @@ Site statique prêt à l'emploi (`index.html` à la racine + `vercel.json`). Voi
 2. **Régler le découpage** : largeur/hauteur de sprite, colonnes, lignes, marges,
    espacements, **rognage** (rogne N px par bord pour éliminer les bords parasites).
    Boutons *Déduire la grille* / *Déduire la taille* pour s'aider de la taille de l'image.
+   **Enregistrez la découpe** (💾) : associée au nom du fichier, elle est **réappliquée
+   automatiquement** au prochain chargement de cette planche (renommable, exportable en JSON).
 3. **Créer des animations** (panneau de gauche) — librement, ou via *Liste par défaut*.
 4. **Affecter des sprites** à l'animation active :
    - glisser une vignette (ou une sélection multiple) depuis la grille centrale ;
    - double-cliquer une vignette ;
    - saisir `0, 1, 2, 3` · `00 01 02 03` · `[0,0], [1,3]` dans le champ de l'animation.
+   Les sprites déjà affectés à l'animation sélectionnée sont **surlignés** dans la grille
+   (badge ×N s'ils sont réutilisés plusieurs fois).
 5. **Réordonner / retirer** les frames par glisser-déposer ou via le ✕ d'une frame
    (le sprite source reste intact). Nombre de frames par animation **illimité**.
 6. **Prévisualiser** en bas : lecture/pause, FPS, boucle, frame courante, zoom, **miroir**
@@ -213,6 +217,7 @@ Help-Animator/
 ├── index.html        # interface (structure)
 ├── styles.css        # thème pixel-art moderne
 ├── vercel.json       # déploiement statique Vercel
+├── slicing-presets.json # découpes partagées (chargées au démarrage, committables)
 ├── README.md
 ├── CHANGELOG.md
 ├── HANDOFF.md        # prompt de reprise pour une nouvelle session
@@ -230,6 +235,7 @@ Help-Animator/
     ├── animations.js # panneau d'animations (accordéon)
     ├── preview.js    # lecteur d'animation
     ├── example.js    # génère une feuille de démonstration (canvas → data URL)
+    ├── presets.js    # découpes enregistrées (localStorage + slicing-presets.json)
     └── app.js        # amorçage & câblage de l'UI
 ```
 

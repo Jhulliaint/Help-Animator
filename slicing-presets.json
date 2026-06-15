@@ -1,0 +1,15 @@
+[
+  {
+    "id": "seed_hero_sheet",
+    "name": "hero-sheet.png — chevalier (192, 8×5)",
+    "sheetName": "hero-sheet.png",
+    "slicing": {
+      "spriteWidth": 192, "spriteHeight": 192,
+      "columns": 8, "rows": 5,
+      "marginX": 0, "marginY": 0,
+      "spacingX": 0, "spacingY": 0,
+      "inset": 0
+    },
+    "savedAt": 0
+  }
+]
