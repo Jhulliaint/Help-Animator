@@ -38,11 +38,16 @@ et le projet suit un [versionnage sémantique](https://semver.org/lang/fr/).
 - La **validation** contrôle chaque frame contre la grille de **sa** planche et résume le plan d'atlas
   (N planches → 1 feuille) en cas de repack.
 
+### Fixed
+- **Réordonnancement des frames sur plusieurs rangées** : l'index d'insertion ne regardait que la
+  position horizontale → déposer une vignette sur une **rangée inférieure** la replaçait en tête.
+  Le calcul est désormais **2D** (rangée via `clientY`, puis colonne via `clientX`).
+
 ### Verification
 - 21 tests logique (atlas : plan / dédoublonnage / case auto, repack vs passthrough, validation par
   planche, actions de banque, migration v1→v2) + 29 tests UI (banque, affectation croisée, surbrillance
-  par planche active, repack + bouton PNG, presets / verrou sous le nouveau modèle) + 7 tests ergonomie
-  (indicateur d'anim active, badge de planche, compteur, raccourcis) — **0 erreur**.
+  par planche active, repack + bouton PNG, presets / verrou) + 7 ergonomie + 5 réordonnancement 2D
+  (dépôt sur rangées inférieures) — **0 erreur**.
 
 ## [1.4.0] — 2026-06-15
 ### Added

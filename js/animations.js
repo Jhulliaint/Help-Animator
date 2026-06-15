@@ -297,11 +297,16 @@
 
   /* ---------------------------- drag & drop ---------------------------- */
 
+  // Insertion index for a drop, aware of a WRAPPED (multi-row) frames zone:
+  // walk chips in reading order and stop at the first one the pointer sits
+  // before — a row above (clientY), or the same row left of the chip's centre.
   function chipInsertIndex(zone, ev) {
     var chips = Array.prototype.slice.call(zone.querySelectorAll('.frame-chip'));
+    var x = ev.clientX, y = ev.clientY;
     for (var i = 0; i < chips.length; i++) {
       var r = chips[i].getBoundingClientRect();
-      if (ev.clientX < r.left + r.width / 2) return i;
+      if (y < r.top) return i;                                  // pointer is on a row above chip i
+      if (y <= r.bottom && x < r.left + r.width / 2) return i;  // same row, left of chip i's centre
     }
     return chips.length;
   }
