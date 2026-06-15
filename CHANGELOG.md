@@ -21,6 +21,14 @@ et le projet suit un [versionnage sémantique](https://semver.org/lang/fr/).
   réutilisés plusieurs fois. Correspondance par `[ligne, colonne]` (stable même si le nombre de
   colonnes change ensuite).
 
+### Fixed
+- **Cache des assets** : `vercel.json` passe `/js/` et `/styles.css` de `max-age=3600` à
+  `max-age=0, must-revalidate`. Sans nom de fichier versionné (zéro build), l'ancien cache de
+  3600 s pouvait servir un `app.js` **périmé** après un déploiement — un `index.html` neuf (avec
+  de nouveaux boutons) face à un `app.js` ancien (sans leur câblage) donnait des boutons
+  « inertes » sans erreur. Les fichiers se revalident désormais à chaque chargement (304 si
+  inchangés), donc un déploiement prend effet immédiatement.
+
 ### Verification
 - +15 tests logique (découpes : save / find / apply / overwrite / rename / remove / export-import /
   persistance) et +7 tests UI (surbrillance, badge ×N, bascule d'animation) — **0 erreur**.
