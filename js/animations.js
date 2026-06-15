@@ -149,6 +149,13 @@
     }
     body.appendChild(zone);
 
+    if (!anim.locked && anim.frames.length >= 2) {
+      var hint = document.createElement('div');
+      hint.className = 'frames-hint';
+      hint.textContent = '↔ Glissez les vignettes pour les réordonner.';
+      body.appendChild(hint);
+    }
+
     /* ----- per-animation controls (fps/loop always; clear only if unlocked) ----- */
     var controls = document.createElement('div');
     controls.className = 'anim-controls';
@@ -186,8 +193,10 @@
     if (url) thumb.style.backgroundImage = 'url("' + url + '")';
     else { thumb.classList.add('no-image'); thumb.textContent = pad(frameId(frame)); }
 
+    if (!locked) chip.title = 'Glisser pour réordonner · ✕ pour retirer';
     chip.innerHTML =
       '<span class="findex">' + (idx + 1) + '</span>' +
+      (locked ? '' : '<span class="fgrip" aria-hidden="true">⠿</span>') +
       (locked ? '' : '<button class="fdel" data-act="frame-del" title="Retirer">✕</button>');
     chip.insertBefore(thumb, chip.firstChild.nextSibling);
 

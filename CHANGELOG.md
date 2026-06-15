@@ -27,6 +27,8 @@ et le projet suit un [versionnage sémantique](https://semver.org/lang/fr/).
   l'animation ») ; **badge de planche coloré** sur les frames issues d'une autre planche que l'active
   + **compteur de frames par planche** dans le sélecteur ; l'aperçu affiche `[ligne,col]` et la planche
   de la frame courante ; raccourcis **← / →** pour défiler les frames ; états **focus visibles** (a11y).
+  **Réordonnancement des frames par glisser** rendu découvrable (poignée ⠿ sur chaque vignette, indice
+  « glissez pour réordonner », indicateur de dépôt renforcé) — la fonctionnalité existait mais n'était pas visible.
 
 ### Changed
 - **Modèle de projet v2** : `{ sheets[], activeSheetId, animations:[{ frames:[{sheetId,row,col}] }] }`.

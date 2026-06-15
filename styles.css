@@ -475,3 +475,10 @@ input[type="radio"]:focus-visible, input[type="checkbox"]:focus-visible {
 }
 select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255,93,162,.25); }
 .sheets select, .presets select { transition: border-color .12s, box-shadow .12s; }
+
+/* frame reorder affordance (drag to reorder) */
+.frame-chip:active { cursor: grabbing; }
+.frame-chip .fgrip { position: absolute; top: 1px; left: 50%; transform: translateX(-50%); font-size: .62rem; line-height: 1; color: var(--faint); opacity: .45; pointer-events: none; transition: opacity .12s, color .12s; }
+.frame-chip:hover .fgrip { opacity: .95; color: var(--cyan); }
+.frame-chip.drop-before { box-shadow: -4px 0 0 var(--cyan), 0 0 8px rgba(54,226,226,.45); }
+.frames-hint { font-size: .68rem; color: var(--muted); margin: 2px 2px 8px; }
