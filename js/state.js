@@ -180,5 +180,11 @@
   HA.activeSheet = function () { return store.activeSheet(); };
   HA.sheetById = function (id) { return store.sheetById(id); };
   HA.activeSlicing = function () { return store.activeSlicing(); };
+  // Stable hue (0-359) for a sheet id — used to colour multi-sheet badges.
+  HA.sheetHue = function (id) {
+    var h = 0; id = String(id || '');
+    for (var i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+    return h % 360;
+  };
 
 })(window.HA = window.HA || {});

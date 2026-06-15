@@ -450,3 +450,28 @@ input[type="checkbox"] { accent-color: var(--cyan); width: 16px; height: 16px; }
   .panel.left, .panel.right { max-height: 320px; }
   .dock { flex-direction: column; align-items: center; }
 }
+
+/* ----------------------------- ergonomics polish ----------------------------- */
+/* active-animation indicator chip (center toolbar) */
+.chip[hidden] { display: none; }
+.accent-chip {
+  background: linear-gradient(135deg, rgba(54,226,226,.18), rgba(155,109,255,.18));
+  border-color: rgba(54,226,226,.45); color: var(--cyan); font-weight: 600;
+  max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* multi-sheet badge on frames from a non-active sheet */
+.frame-chip.foreign { border-color: rgba(255,255,255,.20); }
+.frame-chip .fsheet {
+  position: absolute; bottom: -6px; right: -6px; min-width: 16px; height: 16px;
+  padding: 0 4px; border-radius: 999px; color: #fff; font-size: .58rem; font-weight: 800;
+  line-height: 16px; text-align: center; box-shadow: 0 1px 3px rgba(0,0,0,.5);
+}
+
+/* keyboard-accessible focus + consistent select styling */
+.btn:focus-visible, select:focus-visible,
+input[type="radio"]:focus-visible, input[type="checkbox"]:focus-visible {
+  outline: 2px solid var(--cyan); outline-offset: 2px;
+}
+select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px rgba(255,93,162,.25); }
+.sheets select, .presets select { transition: border-color .12s, box-shadow .12s; }

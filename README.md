@@ -78,7 +78,7 @@ sélectionnée est dépliée), grille de sprites au **centre**, import + découp
 **droite**, prévisualisation **en bas**, export en **modale**.
 
 **Raccourcis :** `Ctrl+Z`/`Ctrl+Y` annuler/rétablir · `Ctrl+S` sauvegarder ·
-`Ctrl+E` exporter · `Espace` lecture/pause · `Échap` fermer la modale.
+`Ctrl+E` exporter · `Espace` lecture/pause · `←`/`→` frame précédente/suivante · `Échap` fermer la modale.
 
 **Convention de coordonnées :** `id = ligne × colonnes + colonne`, export en `[ligne, colonne]`.
 Exemple sur 8 colonnes : `00 = [0,0]`, `07 = [0,7]`, `08 = [1,0]`.

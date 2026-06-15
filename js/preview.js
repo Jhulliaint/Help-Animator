@@ -84,9 +84,14 @@
       frameInfoEl.textContent = 'frame 0 / 0';
       return;
     }
-    frameInfoEl.textContent = 'frame ' + (frameIndex + 1) + ' / ' + anim.frames.length;
-
     var frame = anim.frames[frameIndex];
+    var info = 'frame ' + (frameIndex + 1) + ' / ' + anim.frames.length + ' · [' + frame.row + ',' + frame.col + ']';
+    var proj = HA.store.state.project;
+    if (proj.sheets.length > 1) {
+      var fsh = HA.store.sheetById(frame.sheetId);
+      if (fsh) info += ' · ' + (fsh.name || 'planche');
+    }
+    frameInfoEl.textContent = info;
     var sz = HA.sheet.frameSize(frame);
     var scale = HA.store.state.project.preview.scale || 4;
     var dw = sz.w * scale;

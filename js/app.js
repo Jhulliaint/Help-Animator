@@ -433,6 +433,10 @@
       else if (e.key === ' ' && !typing && document.getElementById('export-modal').hidden) {
         e.preventDefault(); document.getElementById('btn-play').click();
       }
+      else if (!typing && document.getElementById('export-modal').hidden && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+        e.preventDefault();
+        document.getElementById(e.key === 'ArrowLeft' ? 'btn-prev' : 'btn-next').click();
+      }
     });
   }
 
@@ -507,8 +511,10 @@
     var sel = document.getElementById('sheet-select');
     if (!sel) return;
     var p = HA.store.state.project;
+    var counts = {};
+    p.animations.forEach(function (a) { a.frames.forEach(function (f) { counts[f.sheetId] = (counts[f.sheetId] || 0) + 1; }); });
     sel.innerHTML = p.sheets.map(function (s) {
-      var label = (s.name || '(sans nom)') + (s.imageDataUrl ? '' : ' — vide');
+      var label = (s.name || '(sans nom)') + (s.imageDataUrl ? '' : ' — vide') + (counts[s.id] ? (' · ' + counts[s.id] + 'f') : '');
       return '<option value="' + s.id + '">' + escapeHtml(label) + '</option>';
     }).join('');
     sel.value = p.activeSheetId;
@@ -561,6 +567,12 @@
       info.textContent = rt.imageLoaded
         ? ((a ? a.name : '') + '  —  ' + rt.imageWidth + '×' + rt.imageHeight + ' px')
         : (a && a.name ? (a.name + '  —  (vide)') : 'Aucune image chargée.');
+      var aaEl = document.getElementById('active-anim');
+      if (aaEl) {
+        var anim = state.project.animations.find(function (x) { return x.id === rt.selectedAnimationId; });
+        aaEl.textContent = anim ? ('→ ' + anim.name) : '';
+        aaEl.hidden = !anim;
+      }
       if (!document.getElementById('export-modal').hidden) refreshExportText();
     });
 

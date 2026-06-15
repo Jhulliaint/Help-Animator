@@ -23,6 +23,10 @@ et le projet suit un [versionnage sémantique](https://semver.org/lang/fr/).
     propose **⤓ Télécharger la planche générée (PNG)**. Le jeu reste **inchangé** (il charge toujours
     une seule feuille). Mono-planche : comportement identique à avant (coordonnées dans la feuille d'origine).
   - Case cible : `cell` explicite, sinon auto = plus grande source ; nombre de colonnes de l'atlas réglable.
+- **Passe d'ergonomie** : indicateur « → animation active » près de la grille (cible de « Ajouter à
+  l'animation ») ; **badge de planche coloré** sur les frames issues d'une autre planche que l'active
+  + **compteur de frames par planche** dans le sélecteur ; l'aperçu affiche `[ligne,col]` et la planche
+  de la frame courante ; raccourcis **← / →** pour défiler les frames ; états **focus visibles** (a11y).
 
 ### Changed
 - **Modèle de projet v2** : `{ sheets[], activeSheetId, animations:[{ frames:[{sheetId,row,col}] }] }`.
@@ -35,7 +39,8 @@ et le projet suit un [versionnage sémantique](https://semver.org/lang/fr/).
 ### Verification
 - 21 tests logique (atlas : plan / dédoublonnage / case auto, repack vs passthrough, validation par
   planche, actions de banque, migration v1→v2) + 29 tests UI (banque, affectation croisée, surbrillance
-  par planche active, repack + bouton PNG, presets / verrou sous le nouveau modèle) — **0 erreur**.
+  par planche active, repack + bouton PNG, presets / verrou sous le nouveau modèle) + 7 tests ergonomie
+  (indicateur d'anim active, badge de planche, compteur, raccourcis) — **0 erreur**.
 
 ## [1.4.0] — 2026-06-15
 ### Added

@@ -195,6 +195,21 @@
     coord.className = 'fcoord';
     coord.textContent = '[' + frame.row + ',' + frame.col + ']';
     chip.appendChild(coord);
+
+    // Badge for frames coming from a NON-active sheet (multi-sheet projects),
+    // so mixed-source animations are readable at a glance.
+    var p = HA.store.state.project;
+    if (p.sheets.length > 1 && frame.sheetId !== p.activeSheetId) {
+      var sh = HA.store.sheetById(frame.sheetId);
+      var idxNum = p.sheets.findIndex(function (s) { return s.id === frame.sheetId; });
+      var badge = document.createElement('span');
+      badge.className = 'fsheet';
+      badge.textContent = idxNum >= 0 ? String(idxNum + 1) : '?';
+      badge.style.background = 'hsl(' + HA.sheetHue(frame.sheetId) + ',65%,42%)';
+      badge.title = 'Planche : ' + (sh ? (sh.name || 'sans nom') : 'inconnue');
+      chip.appendChild(badge);
+      chip.classList.add('foreign');
+    }
     return chip;
   }
 
