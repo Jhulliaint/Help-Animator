@@ -9,6 +9,7 @@
   var RERENDER = {
     'image': 1, 'slicing': 1, 'project-loaded': 1, 'history': 1,
     'select-sprite': 1, 'zoom': 1, 'init': 1,
+    'sheet-active': 1, 'sheet-remove': 1,
     // keep the "used by the active animation" highlight in sync
     'anim-select': 1, 'frame-change': 1, 'anim-add': 1, 'anim-remove': 1
   };
@@ -32,12 +33,14 @@
       return;
     }
 
-    // Sprites used by the currently selected animation — matched by row/col
-    // (stable even if the column count later changes). Value = how many times.
+    // Sprites used by the currently selected animation, ON THE ACTIVE SHEET
+    // (frames from other sheets aren't on this grid). Value = how many times.
     var activeAnim = HA.store.state.project.animations.find(function (a) { return a.id === rt.selectedAnimationId; });
+    var activeSid = HA.store.state.project.activeSheetId;
     var used = {};
     if (activeAnim) {
       activeAnim.frames.forEach(function (f) {
+        if (f.sheetId !== activeSid) return;
         var k = f.row + ':' + f.col;
         used[k] = (used[k] || 0) + 1;
       });

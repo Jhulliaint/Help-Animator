@@ -1,5 +1,7 @@
 /* =====================================================================
-   sheet.js — spritesheet image handling + per-cell thumbnail cache
+   sheet.js — spritesheet image handling + per-cell thumbnail cache.
+   Images are kept per sheet (runtime.sheetImages[sheetId]) so a frame can be
+   resolved against whichever sheet it came from, not only the active one.
    ===================================================================== */
 (function (HA) {
   'use strict';
@@ -18,16 +20,19 @@
 
     clearCache: function () { this._cache.clear(); },
 
-    _key: function (cell) {
-      return cell.x + '|' + cell.y + '|' + cell.width + '|' + cell.height;
+    _key: function (sheetId, cell) {
+      return sheetId + '|' + cell.x + '|' + cell.y + '|' + cell.width + '|' + cell.height;
     },
 
-    // Returns a crisp dataURL for the given cell, or null when no image loaded.
-    getThumb: function (cell) {
-      var rt = HA.store.state.runtime;
-      if (!rt.image) return null;
+    imageFor: function (sheetId) {
+      return HA.store.state.runtime.sheetImages[sheetId] || null;
+    },
+
+    // Crisp dataURL for a cell of a given sheet, or null when no image.
+    getThumbFromImage: function (img, sheetId, cell) {
+      if (!img) return null;
       if (cell.width <= 0 || cell.height <= 0) return null;
-      var key = this._key(cell);
+      var key = this._key(sheetId, cell);
       if (this._cache.has(key)) return this._cache.get(key);
 
       var canvas = document.createElement('canvas');
@@ -36,32 +41,47 @@
       var ctx = canvas.getContext('2d');
       ctx.imageSmoothingEnabled = false;
       try {
-        ctx.drawImage(rt.image, cell.x, cell.y, cell.width, cell.height, 0, 0, cell.width, cell.height);
-      } catch (e) {
-        return null;
-      }
+        ctx.drawImage(img, cell.x, cell.y, cell.width, cell.height, 0, 0, cell.width, cell.height);
+      } catch (e) { return null; }
       var url;
       try { url = canvas.toDataURL(); } catch (e) { return null; }
       this._cache.set(key, url);
       return url;
     },
 
-    // Thumbnail for an animation frame, resolved through the current slicing.
-    getThumbForFrame: function (frame) {
-      var cell = HA.slicer.cellAt(frame.row, frame.col, HA.store.state.project.slicing);
-      return this.getThumb(cell);
+    // Thumbnail for a cell of the ACTIVE sheet (used by the central grid).
+    getThumb: function (cell) {
+      var a = HA.store.activeSheet();
+      if (!a) return null;
+      return this.getThumbFromImage(this.imageFor(a.id), a.id, cell);
     },
 
-    // Draw a frame onto a 2D context (used by the preview player).
+    // Thumbnail for an animation frame, resolved through ITS sheet's slicing.
+    getThumbForFrame: function (frame) {
+      var sh = (frame.sheetId && HA.store.sheetById(frame.sheetId)) || HA.store.activeSheet();
+      if (!sh) return null;
+      var cell = HA.slicer.cellAt(frame.row, frame.col, sh.slicing);
+      return this.getThumbFromImage(this.imageFor(sh.id), sh.id, cell);
+    },
+
+    // Draw a frame onto a 2D context (preview / atlas), resolving its sheet.
     drawFrame: function (ctx, frame, dx, dy, dw, dh) {
-      var rt = HA.store.state.runtime;
-      if (!rt.image) return false;
-      var cell = HA.slicer.cellAt(frame.row, frame.col, HA.store.state.project.slicing);
+      var sh = (frame.sheetId && HA.store.sheetById(frame.sheetId)) || HA.store.activeSheet();
+      if (!sh) return false;
+      var img = this.imageFor(sh.id);
+      if (!img) return false;
+      var cell = HA.slicer.cellAt(frame.row, frame.col, sh.slicing);
       ctx.imageSmoothingEnabled = false;
       try {
-        ctx.drawImage(rt.image, cell.x, cell.y, cell.width, cell.height, dx, dy, dw, dh);
+        ctx.drawImage(img, cell.x, cell.y, cell.width, cell.height, dx, dy, dw, dh);
       } catch (e) { return false; }
       return true;
+    },
+
+    // Sprite size (px) of a frame on its own sheet — used by the preview to size it.
+    frameSize: function (frame) {
+      var sh = (frame.sheetId && HA.store.sheetById(frame.sheetId)) || HA.store.activeSheet();
+      return sh ? { w: sh.slicing.spriteWidth, h: sh.slicing.spriteHeight } : { w: 1, h: 1 };
     }
   };
 

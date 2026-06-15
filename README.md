@@ -4,7 +4,7 @@
 > d'une spritesheet, et générer une map d'animations (`HERO_SPRITE_MAP`) prête à être
 > consommée par un moteur de jeu.
 
-**Statut :** ✅ v1.4.0 — aligné sur Jeux-Math-o (preset + validation) ; rognage, miroir, verrou/fusion, **découpes enregistrées** & **surbrillance des sprites affectés**. Déployé sur Vercel.
+**Statut :** ✅ v2.0.0 — **multi-planches** (banque de planches + atlas à l'export) ; aligné sur Jeux-Math-o (preset + validation), rognage, miroir, verrou/fusion, découpes enregistrées & surbrillance. Déployé sur Vercel.
 **Stack :** HTML + CSS + JavaScript vanilla, **zéro dépendance, zéro build**.
 **Usage :** ouvrir `index.html` dans un navigateur — aucune installation, aucune ligne de commande.
 
@@ -42,8 +42,9 @@ Site statique prêt à l'emploi (`index.html` à la racine + `vercel.json`). Voi
 
 ## 🕹️ Utilisation
 
-1. **Importer** une spritesheet (bouton ou glisser-déposer). Pas de fichier sous la main ?
-   **🧪 Charger un exemple** génère une feuille de démonstration 8×5 (sans fichier ni dépendance).
+1. **Importer** une ou plusieurs spritesheets (bouton ou glisser-déposer). Chaque import **ajoute
+   une planche** à la banque ; le sélecteur *Planches* choisit la planche active (découpée dans la
+   grille). Pas de fichier ? **🧪 Charger un exemple** génère une feuille 8×5 (sans fichier ni dépendance).
 2. **Régler le découpage** : largeur/hauteur de sprite, colonnes, lignes, marges,
    espacements, **rognage** (rogne N px par bord pour éliminer les bords parasites).
    Boutons *Déduire la grille* / *Déduire la taille* pour s'aider de la taille de l'image.
@@ -61,8 +62,10 @@ Site statique prêt à l'emploi (`index.html` à la racine + `vercel.json`). Voi
 6. **Prévisualiser** en bas : lecture/pause, FPS, boucle, frame courante, zoom, **miroir**
    (⇄, pour vérifier les directions droite/gauche).
 7. **Exporter** (`Exporter` ou `Ctrl+E`) au format **Jeux-Math-o** / JS / JSON / TS. Un
-   **panneau de validation** signale les frames hors grille et les animations attendues par
-   le jeu mais manquantes ou vides. Copier ou télécharger.
+   **panneau de validation** signale les frames hors grille et les animations attendues par le jeu
+   mais manquantes ou vides. Si une animation **mélange plusieurs planches**, l'export Jeux-Math-o
+   **assemble une feuille unique (atlas)** : téléchargez la **planche générée (PNG)** + la map. Copier
+   ou télécharger.
 8. **Sauvegarder / Ouvrir** un projet `.spritemap.json` (l'image est embarquée).
    Auto-sauvegarde permanente dans le navigateur.
 9. **Figer & réutiliser** : verrouillez une animation (🔒) pour la protéger et la **conserver
@@ -75,7 +78,7 @@ sélectionnée est dépliée), grille de sprites au **centre**, import + découp
 **droite**, prévisualisation **en bas**, export en **modale**.
 
 **Raccourcis :** `Ctrl+Z`/`Ctrl+Y` annuler/rétablir · `Ctrl+S` sauvegarder ·
-`Ctrl+E` exporter · `Espace` lecture/pause · `Échap` fermer la modale.
+`Ctrl+E` exporter · `Espace` lecture/pause · `←`/`→` frame précédente/suivante · `Échap` fermer la modale.
 
 **Convention de coordonnées :** `id = ligne × colonnes + colonne`, export en `[ligne, colonne]`.
 Exemple sur 8 colonnes : `00 = [0,0]`, `07 = [0,7]`, `08 = [1,0]`.
@@ -226,7 +229,8 @@ Help-Animator/
     ├── slicer.js     # géométrie de découpage (pure)
     ├── sheet.js      # image + cache de vignettes
     ├── parse.js      # parseur de saisie manuelle
-    ├── exporter.js   # génération JS / JSON / TS / preset Jeux-Math-o
+    ├── atlas.js      # repack multi-planches -> 1 feuille (plan + rendu PNG)
+    ├── exporter.js   # génération JS / JSON / TS / preset Jeux-Math-o (atlas si multi-planches)
     ├── validate.js   # contrôles pré-export (pure) : grille, clés attendues par le jeu
     ├── project.js    # sauvegarde / chargement + autosave
     ├── actions.js    # couche de commandes (toute mutation)
@@ -244,19 +248,22 @@ Help-Animator/
 ## 🗃️ Modèle de données
 ```ts
 type SpriteCell      = { id, row, col, x, y, width, height };
-type AnimationFrame  = { spriteId, row, col };
+type AnimationFrame  = { sheetId, row, col };       // remembers its source sheet
 type AnimationDef    = { id, name, frames: AnimationFrame[], fps, loop, locked };
+type Sheet           = { id, name, imageDataUrl,
+                         slicing: { spriteWidth, spriteHeight, columns, rows, marginX, marginY, spacingX, spacingY, inset } };
 type ProjectData     = {
-  version, spriteSheetName, imageDataUrl,
-  slicing: { spriteWidth, spriteHeight, columns, rows, marginX, marginY, spacingX, spacingY, inset },
+  version: 2,
+  sheets: Sheet[], activeSheetId,                   // image bank (multi-sheet)
   animations: AnimationDef[],
   preview: { fps, loop, scale },
   export:  {
     format, varName, pretty, includeEmpty, padIds,
-    // preset Jeux-Math-o (format = 'game')
-    game: { sheet, cell, flipRightFromLeft, fpsWalk, fpsIdle, comment }
+    // preset Jeux-Math-o (format = 'game') — atlas repack si multi-planches
+    game: { sheet, cell, atlasCols, flipRightFromLeft, fpsWalk, fpsIdle, comment }
   }
 };
+// Projets v1 (image unique) migrés automatiquement au chargement.
 ```
 
 ---

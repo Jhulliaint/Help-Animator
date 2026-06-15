@@ -1,9 +1,10 @@
 /* =====================================================================
-   parse.js — manual frame entry parser
+   parse.js — manual frame entry parser (against the ACTIVE sheet's grid)
    Accepts:
      "0, 1, 2, 3"          -> sprite ids
      "00 01 02 03"         -> sprite ids (zero padded, space separated)
      "[0,0], [0,1], [0,2]" -> [row, col] coordinates
+   Frames are returned as { row, col }; the source sheet is stamped by actions.
    ===================================================================== */
 (function (HA) {
   'use strict';
@@ -12,7 +13,7 @@
     var result = { frames: [], errors: [] };
     if (!text || !text.trim()) return result;
 
-    var s = HA.store.state.project.slicing;
+    var s = HA.store.activeSlicing() || HA.defaultSlicing();
     var cols = Math.max(1, s.columns | 0);
     var rows = Math.max(1, s.rows | 0);
     var maxId = cols * rows - 1;
@@ -27,7 +28,7 @@
       if (row < 0 || col < 0 || row >= rows || col >= cols) {
         result.errors.push('[' + row + ', ' + col + '] hors grille');
       } else {
-        result.frames.push({ spriteId: row * cols + col, row: row, col: col });
+        result.frames.push({ row: row, col: col });
       }
     }
     if (foundBracket) return result;
@@ -39,7 +40,7 @@
       if (isNaN(id) || id < 0 || id > maxId) {
         result.errors.push('#' + t + ' hors grille');
       } else {
-        result.frames.push({ spriteId: id, row: Math.floor(id / cols), col: id % cols });
+        result.frames.push({ row: Math.floor(id / cols), col: id % cols });
       }
     });
     return result;

@@ -1,10 +1,12 @@
 /* =====================================================================
-   exporter.js — generate the HERO_SPRITE_MAP string (JS / JSON / TS / game)
+   exporter.js — generate the HERO_SPRITE_MAP string (JS / JSON / TS / game).
+   For the "game" preset, frames spanning several sheets are repacked into one
+   atlas (atlas.js) and coordinates point into that generated sheet.
    ===================================================================== */
 (function (HA) {
   'use strict';
 
-  // animations -> { name: [[row,col], ...] }
+  // animations -> { name: [[row,col], ...] } (frames as-is, single-sheet)
   function buildMap(project, includeEmpty) {
     var map = {};
     project.animations.forEach(function (a) {
@@ -23,7 +25,6 @@
     return '[' + pairs.map(function (p) { return '[' + p[0] + ', ' + p[1] + ']'; }).join(', ') + ']';
   }
 
-  // body for JS / TS object literals (unquoted keys, blank line between entries)
   function objectBody(map, pretty) {
     var keys = Object.keys(map);
     if (!keys.length) return '{}';
@@ -36,15 +37,12 @@
     return '{\n' + entries.join(pretty ? ',\n\n' : ',\n') + '\n}';
   }
 
-  // body for strict JSON (quoted keys); keeps each pair list inline for readability
   function jsonBody(map, pretty) {
     var keys = Object.keys(map);
     if (!keys.length) return '{}';
     if (!pretty) return JSON.stringify(map);
     var indent = '  ';
-    var entries = keys.map(function (k) {
-      return indent + JSON.stringify(k) + ': ' + pairsCompact(map[k]);
-    });
+    var entries = keys.map(function (k) { return indent + JSON.stringify(k) + ': ' + pairsCompact(map[k]); });
     return '{\n' + entries.join(',\n') + '\n}';
   }
 
@@ -55,36 +53,45 @@
     return v < lo ? lo : v;
   }
 
-  // animations object indented under `baseIndent`, with each pair-list inline.
   function jsonAnimations(map, pretty, baseIndent) {
     var keys = Object.keys(map);
     if (!keys.length) return '{}';
     if (!pretty) return JSON.stringify(map);
     var ind = baseIndent + '  ';
-    var entries = keys.map(function (k) {
-      return ind + JSON.stringify(k) + ': ' + pairsCompact(map[k]);
-    });
+    var entries = keys.map(function (k) { return ind + JSON.stringify(k) + ': ' + pairsCompact(map[k]); });
     return '{\n' + entries.join(',\n') + '\n' + baseIndent + '}';
   }
 
-  // "Jeux-Math-o" preset: the exact JSON shape the game's SpriteAnimator loads
-  // -> { sheet, cell, cols, flipRightFromLeft, fps:{walk,idle}, animations }.
+  // Does this export need an atlas repack (frames span more than one sheet)?
+  function needsRepack(project) {
+    if (!HA.atlas) return false;
+    return HA.atlas.plan(project).multi;
+  }
+
   function gameMapString(project) {
     var g = project.export.game || {};
-    var s = project.slicing;
-    var explicitCell = clampInt(g.cell, 0, 0);
-    var cell = explicitCell > 0 ? explicitCell : clampInt(s.spriteWidth, 1);
-    var cols = clampInt(s.columns, 1);
-    var sheet = g.sheet || './assets/sprites/hero-sheet.png';
+    var sheetPath = g.sheet || './assets/sprites/hero-sheet.png';
     var fpsWalk = clampInt(g.fpsWalk, 8);
     var fpsIdle = clampInt(g.fpsIdle, 3);
     var flip = !!g.flipRightFromLeft;
-    var map = buildMap(project, project.export.includeEmpty);
+
+    var cell, cols, map;
+    if (needsRepack(project)) {
+      var p = HA.atlas.plan(project);
+      cell = p.cell; cols = p.cols;
+      map = HA.atlas.buildAnimations(project, p, project.export.includeEmpty);
+    } else {
+      var s = HA.store.activeSlicing() || HA.defaultSlicing();
+      var explicit = clampInt(g.cell, 0, 0);
+      cell = explicit > 0 ? explicit : clampInt(s.spriteWidth, 1);
+      cols = clampInt(s.columns, 1);
+      map = buildMap(project, project.export.includeEmpty);
+    }
 
     if (!project.export.pretty) {
       var out = {};
       if (g.comment) out._comment = g.comment;
-      out.sheet = sheet; out.cell = cell; out.cols = cols;
+      out.sheet = sheetPath; out.cell = cell; out.cols = cols;
       out.flipRightFromLeft = flip;
       out.fps = { walk: fpsWalk, idle: fpsIdle };
       out.animations = map;
@@ -93,7 +100,7 @@
 
     var rows = [];
     if (g.comment) rows.push('  "_comment": ' + JSON.stringify(g.comment));
-    rows.push('  "sheet": ' + JSON.stringify(sheet));
+    rows.push('  "sheet": ' + JSON.stringify(sheetPath));
     rows.push('  "cell": ' + cell);
     rows.push('  "cols": ' + cols);
     rows.push('  "flipRightFromLeft": ' + flip);
@@ -106,16 +113,10 @@
     var opt = project.export;
     var name = (opt.varName || 'HERO_SPRITE_MAP').trim() || 'HERO_SPRITE_MAP';
 
-    if (opt.format === 'game') {
-      return gameMapString(project);
-    }
+    if (opt.format === 'game') return gameMapString(project);
     var map = buildMap(project, opt.includeEmpty);
-    if (opt.format === 'json') {
-      return jsonBody(map, opt.pretty) + '\n';
-    }
-    if (opt.format === 'ts') {
-      return 'export const ' + name + ' = ' + objectBody(map, opt.pretty) + ' as const;\n';
-    }
+    if (opt.format === 'json') return jsonBody(map, opt.pretty) + '\n';
+    if (opt.format === 'ts') return 'export const ' + name + ' = ' + objectBody(map, opt.pretty) + ' as const;\n';
     return 'const ' + name + ' = ' + objectBody(map, opt.pretty) + ';\n';
   }
 
@@ -127,6 +128,7 @@
     buildMap: buildMap,
     exportString: exportString,
     gameMapString: gameMapString,
+    needsRepack: needsRepack,
     fileExtension: fileExtension
   };
 

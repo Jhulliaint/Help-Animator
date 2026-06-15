@@ -20,6 +20,13 @@
     return String(n).padStart(p, '0');
   }
 
+  // Display id of a frame = row * columns + col, using ITS sheet's grid.
+  function frameId(f) {
+    var sh = (f.sheetId && HA.store.sheetById(f.sheetId)) || HA.store.activeSheet();
+    var c = Math.max(1, (sh ? sh.slicing.columns : 8) | 0);
+    return f.row * c + f.col;
+  }
+
   function getAnimById(id) {
     return HA.store.state.project.animations.find(function (a) { return a.id === id; });
   }
@@ -106,7 +113,7 @@
       t.className = 'strip-thumb';
       var url = HA.sheet.getThumbForFrame(f);
       if (url) t.style.backgroundImage = 'url("' + url + '")';
-      else { t.classList.add('no-image'); t.textContent = pad(f.spriteId); }
+      else { t.classList.add('no-image'); t.textContent = pad(frameId(f)); }
       strip.appendChild(t);
     });
     if (anim.frames.length > 16) {
@@ -141,6 +148,13 @@
       });
     }
     body.appendChild(zone);
+
+    if (!anim.locked && anim.frames.length >= 2) {
+      var hint = document.createElement('div');
+      hint.className = 'frames-hint';
+      hint.textContent = '↔ Glissez les vignettes pour les réordonner.';
+      body.appendChild(hint);
+    }
 
     /* ----- per-animation controls (fps/loop always; clear only if unlocked) ----- */
     var controls = document.createElement('div');
@@ -177,10 +191,12 @@
     thumb.className = 'fthumb';
     var url = HA.sheet.getThumbForFrame(frame);
     if (url) thumb.style.backgroundImage = 'url("' + url + '")';
-    else { thumb.classList.add('no-image'); thumb.textContent = pad(frame.spriteId); }
+    else { thumb.classList.add('no-image'); thumb.textContent = pad(frameId(frame)); }
 
+    if (!locked) chip.title = 'Glisser pour réordonner · ✕ pour retirer';
     chip.innerHTML =
       '<span class="findex">' + (idx + 1) + '</span>' +
+      (locked ? '' : '<span class="fgrip" aria-hidden="true">⠿</span>') +
       (locked ? '' : '<button class="fdel" data-act="frame-del" title="Retirer">✕</button>');
     chip.insertBefore(thumb, chip.firstChild.nextSibling);
 
@@ -188,6 +204,21 @@
     coord.className = 'fcoord';
     coord.textContent = '[' + frame.row + ',' + frame.col + ']';
     chip.appendChild(coord);
+
+    // Badge for frames coming from a NON-active sheet (multi-sheet projects),
+    // so mixed-source animations are readable at a glance.
+    var p = HA.store.state.project;
+    if (p.sheets.length > 1 && frame.sheetId !== p.activeSheetId) {
+      var sh = HA.store.sheetById(frame.sheetId);
+      var idxNum = p.sheets.findIndex(function (s) { return s.id === frame.sheetId; });
+      var badge = document.createElement('span');
+      badge.className = 'fsheet';
+      badge.textContent = idxNum >= 0 ? String(idxNum + 1) : '?';
+      badge.style.background = 'hsl(' + HA.sheetHue(frame.sheetId) + ',65%,42%)';
+      badge.title = 'Planche : ' + (sh ? (sh.name || 'sans nom') : 'inconnue');
+      chip.appendChild(badge);
+      chip.classList.add('foreign');
+    }
     return chip;
   }
 
@@ -266,11 +297,16 @@
 
   /* ---------------------------- drag & drop ---------------------------- */
 
+  // Insertion index for a drop, aware of a WRAPPED (multi-row) frames zone:
+  // walk chips in reading order and stop at the first one the pointer sits
+  // before — a row above (clientY), or the same row left of the chip's centre.
   function chipInsertIndex(zone, ev) {
     var chips = Array.prototype.slice.call(zone.querySelectorAll('.frame-chip'));
+    var x = ev.clientX, y = ev.clientY;
     for (var i = 0; i < chips.length; i++) {
       var r = chips[i].getBoundingClientRect();
-      if (ev.clientX < r.left + r.width / 2) return i;
+      if (y < r.top) return i;                                  // pointer is on a row above chip i
+      if (y <= r.bottom && x < r.left + r.width / 2) return i;  // same row, left of chip i's centre
     }
     return chips.length;
   }
@@ -325,9 +361,10 @@
     var index = zone ? chipInsertIndex(zone, ev) : undefined;
 
     if (payload.kind === 'sprite') {
-      var cols = Math.max(1, HA.store.state.project.slicing.columns | 0);
+      var cols = Math.max(1, (HA.store.activeSlicing() || HA.defaultSlicing()).columns | 0);
+      var sid = HA.store.state.project.activeSheetId;
       var frames = payload.spriteIds.map(function (id) {
-        return { spriteId: id, row: Math.floor(id / cols), col: id % cols };
+        return { sheetId: sid, row: Math.floor(id / cols), col: id % cols };
       });
       HA.actions.insertFrames(animId, frames, index);
       HA.actions.selectAnimation(animId);
@@ -335,11 +372,11 @@
       if (payload.animId === animId) {
         HA.actions.moveFrame(animId, payload.index, index);
       } else {
-        // move a frame from another animation: copy here, remove there
+        // move a frame from another animation: copy here (keeping its sheet), remove there
         var src = HA.store.state.project.animations.find(function (a) { return a.id === payload.animId; });
         var f = src && src.frames[payload.index];
         if (f && !src.locked) {
-          HA.actions.insertFrames(animId, [{ spriteId: f.spriteId, row: f.row, col: f.col }], index);
+          HA.actions.insertFrames(animId, [{ sheetId: f.sheetId, row: f.row, col: f.col }], index);
           HA.actions.removeFrame(payload.animId, payload.index);
         }
       }

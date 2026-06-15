@@ -44,6 +44,18 @@
         </div>
         <p id="img-info" class="img-info muted">Aucune image chargée.</p>
         <button id="btn-load-example" class="btn small ghost full" title="Génère une feuille d'exemple 8×5 pour essayer l'outil sans fichier">🧪 Charger un exemple</button>
+
+        <div class="sheets">
+          <label class="field">
+            <span>Planches (banque)</span>
+            <select id="sheet-select" title="Planche active — celle découpée dans la grille centrale"></select>
+          </label>
+          <div class="btn-row">
+            <button id="btn-sheet-rename" class="btn tiny" title="Renommer la planche active">✎ Renommer</button>
+            <button id="btn-sheet-remove" class="btn tiny danger" title="Retirer la planche active">🗑 Retirer</button>
+          </div>
+          <p class="hint muted">Importez plusieurs planches : chaque frame retient sa planche. À l'export « Jeux-Math-o », elles sont assemblées en une seule feuille.</p>
+        </div>
       </section>
 
       <section class="card">
@@ -129,6 +141,7 @@
         <div class="ct-left">
           <strong>Sprites</strong>
           <span id="sel-count" class="chip muted">0 sélectionné</span>
+          <span id="active-anim" class="chip accent-chip" hidden title="Animation active — cible de « Ajouter à l'animation »"></span>
         </div>
         <div class="ct-right">
           <button id="btn-select-all" class="btn tiny">Tout sélectionner</button>
@@ -243,6 +256,7 @@
             <input type="checkbox" id="exp-game-flip" />
             <span>flipRightFromLeft — réutilise <code>*_left</code> en miroir pour <code>*_right</code></span>
           </label>
+          <button id="btn-download-atlas" class="btn accent full" hidden title="Génère et télécharge la planche unique (atlas) à déposer comme hero-sheet.png">⤓ Télécharger la planche générée (PNG)</button>
         </div>
 
         <textarea id="export-text" class="export-text" spellcheck="false" readonly></textarea>
@@ -267,6 +281,7 @@
   <script src="js/state.js"></script>
   <script src="js/slicer.js"></script>
   <script src="js/sheet.js"></script>
+  <script src="js/atlas.js"></script>
   <script src="js/parse.js"></script>
   <script src="js/exporter.js"></script>
   <script src="js/validate.js"></script>

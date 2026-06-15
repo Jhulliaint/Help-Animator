@@ -84,13 +84,18 @@
       frameInfoEl.textContent = 'frame 0 / 0';
       return;
     }
-    frameInfoEl.textContent = 'frame ' + (frameIndex + 1) + ' / ' + anim.frames.length;
-
     var frame = anim.frames[frameIndex];
-    var s = HA.store.state.project.slicing;
+    var info = 'frame ' + (frameIndex + 1) + ' / ' + anim.frames.length + ' · [' + frame.row + ',' + frame.col + ']';
+    var proj = HA.store.state.project;
+    if (proj.sheets.length > 1) {
+      var fsh = HA.store.sheetById(frame.sheetId);
+      if (fsh) info += ' · ' + (fsh.name || 'planche');
+    }
+    frameInfoEl.textContent = info;
+    var sz = HA.sheet.frameSize(frame);
     var scale = HA.store.state.project.preview.scale || 4;
-    var dw = s.spriteWidth * scale;
-    var dh = s.spriteHeight * scale;
+    var dw = sz.w * scale;
+    var dh = sz.h * scale;
     // fit inside canvas
     var fit = Math.min(w / dw, h / dh, 1);
     dw *= fit; dh *= fit;
