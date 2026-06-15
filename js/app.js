@@ -47,14 +47,15 @@
     if (!file || !/^image\//.test(file.type)) { HA.toast('Fichier image invalide', 'error'); return; }
     var reader = new FileReader();
     reader.onload = function () {
-      HA.actions.setImage(file.name, reader.result).then(function () {
+      HA.actions.importImage(file.name, reader.result).then(function () {
+        refreshSheetSelect();
         var p = HA.presets && HA.presets.findForSheet(file.name);
         if (p) {
           HA.presets.apply(p.id);
           refreshPresetSelect(p.id);
           HA.toast('Découpe « ' + p.name + ' » restaurée pour ' + file.name, 'ok');
         } else {
-          HA.toast('Image chargée : ' + file.name, 'ok');
+          HA.toast('Planche ajoutée : ' + file.name, 'ok');
         }
       }).catch(function () { HA.toast('Impossible de charger l\'image', 'error'); });
     };
@@ -65,12 +66,13 @@
   function loadExample() {
     if (!HA.example) return;
     var url = HA.example.generateDataUrl();
-    HA.actions.setImage('exemple-chevalier.png', url).then(function () {
+    HA.actions.importImage('exemple-chevalier.png', url).then(function () {
       HA.actions.updateSlicing({
         spriteWidth: HA.example.CELL, spriteHeight: HA.example.CELL,
         columns: HA.example.COLS, rows: HA.example.ROWS,
-        marginX: 0, marginY: 0, spacingX: 0, spacingY: 0
+        marginX: 0, marginY: 0, spacingX: 0, spacingY: 0, inset: 0
       });
+      refreshSheetSelect();
       if (!HA.store.state.project.animations.length) HA.actions.addDefaultAnimations();
       HA.toast('Exemple chargé (8×5) — découpez, glissez, prévisualisez', 'ok');
     }).catch(function () { HA.toast('Impossible de générer l\'exemple', 'error'); });
@@ -80,7 +82,8 @@
   var SLICE_KEYS = ['spriteWidth', 'spriteHeight', 'columns', 'rows', 'marginX', 'marginY', 'spacingX', 'spacingY', 'inset'];
 
   function refreshSlicingInputs() {
-    var s = HA.store.state.project.slicing;
+    var s = HA.store.activeSlicing();
+    if (!s) return;
     SLICE_KEYS.forEach(function (k) {
       var el = document.getElementById('sl-' + k);
       if (el && el !== document.activeElement) el.value = s[k];
@@ -147,7 +150,8 @@
     document.getElementById('exp-game-sheet').value = g.sheet || '';
     var cellInput = document.getElementById('exp-game-cell');
     cellInput.value = (g.cell && g.cell > 0) ? g.cell : '';
-    cellInput.placeholder = 'auto (' + p.slicing.spriteWidth + ')';
+    var as = HA.store.activeSlicing();
+    cellInput.placeholder = 'auto (' + (as ? as.spriteWidth : 48) + ')';
     document.getElementById('exp-game-fpswalk').value = g.fpsWalk || 8;
     document.getElementById('exp-game-fpsidle').value = g.fpsIdle || 3;
     document.getElementById('exp-game-flip').checked = !!g.flipRightFromLeft;
@@ -163,6 +167,20 @@
   function refreshExportText() {
     document.getElementById('export-text').value = HA.exporter.exportString(HA.store.state.project);
     refreshValidation();
+    updateAtlasButton();
+  }
+  // The "download generated atlas (PNG)" button only applies when the game
+  // export repacks several sheets into one.
+  function updateAtlasButton() {
+    var btn = document.getElementById('btn-download-atlas');
+    if (!btn) return;
+    var p = HA.store.state.project;
+    btn.hidden = !(p.export.format === 'game' && HA.exporter.needsRepack && HA.exporter.needsRepack(p));
+  }
+  function downloadDataUrl(filename, dataUrl) {
+    var a = document.createElement('a');
+    a.href = dataUrl; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
   }
   function refreshValidation() {
     var hostEl = document.getElementById('export-validation');
@@ -234,6 +252,14 @@
       HA.project.download(name + '.' + ext, document.getElementById('export-text').value,
         ext === 'json' ? 'application/json' : 'text/plain');
       HA.toast('Fichier .' + ext + ' téléchargé', 'ok');
+    });
+    document.getElementById('btn-download-atlas').addEventListener('click', function () {
+      var p = HA.store.state.project;
+      if (!HA.atlas || !HA.exporter.needsRepack(p)) return;
+      var plan = HA.atlas.plan(p);
+      var pathName = ((p.export.game && p.export.game.sheet) || 'hero-sheet.png').split('/').pop() || 'hero-sheet.png';
+      downloadDataUrl(pathName, HA.atlas.render(p, plan));
+      HA.toast('Planche générée téléchargée : ' + pathName, 'ok');
     });
   }
 
@@ -476,6 +502,41 @@
     });
   }
 
+  /* ----------------------------- sheet bank ----------------------------- */
+  function refreshSheetSelect() {
+    var sel = document.getElementById('sheet-select');
+    if (!sel) return;
+    var p = HA.store.state.project;
+    sel.innerHTML = p.sheets.map(function (s) {
+      var label = (s.name || '(sans nom)') + (s.imageDataUrl ? '' : ' — vide');
+      return '<option value="' + s.id + '">' + escapeHtml(label) + '</option>';
+    }).join('');
+    sel.value = p.activeSheetId;
+    var rm = document.getElementById('btn-sheet-remove');
+    if (rm) rm.disabled = p.sheets.length <= 1;
+  }
+
+  function bindSheets() {
+    var sel = document.getElementById('sheet-select');
+    if (!sel) return;
+    sel.addEventListener('change', function () { if (sel.value) HA.actions.setActiveSheet(sel.value); });
+    document.getElementById('btn-sheet-rename').addEventListener('click', function () {
+      var s = HA.store.activeSheet(); if (!s) return;
+      var name = window.prompt('Nom de la planche :', s.name || '');
+      if (name && name.trim()) { HA.actions.renameSheet(s.id, name.trim()); refreshSheetSelect(); }
+    });
+    document.getElementById('btn-sheet-remove').addEventListener('click', function () {
+      var p = HA.store.state.project;
+      if (p.sheets.length <= 1) { HA.toast('Au moins une planche est requise', 'info'); return; }
+      var s = HA.store.activeSheet();
+      if (window.confirm('Retirer la planche « ' + (s.name || 'sans nom') + ' » ? Les frames qui en dépendent seront supprimées.')) {
+        HA.actions.removeSheet(s.id);
+        refreshSheetSelect();
+        HA.toast('Planche retirée', 'info');
+      }
+    });
+  }
+
   /* ----------------------------- boot ----------------------------- */
   function boot() {
     bindTopbar();
@@ -485,18 +546,21 @@
     bindFileInputs();
     bindExportModal();
     bindPresets();
+    bindSheets();
     bindKeyboard();
 
     // keep top-level chrome in sync with every state change
     HA.store.subscribe(function (state, reason) {
       updateHistoryButtons();
       refreshSlicingInputs();
+      refreshSheetSelect();
       drawSourceOverlay();
       var info = document.getElementById('img-info');
       var rt = state.runtime;
+      var a = HA.store.activeSheet();
       info.textContent = rt.imageLoaded
-        ? (state.project.spriteSheetName + '  —  ' + rt.imageWidth + '×' + rt.imageHeight + ' px')
-        : 'Aucune image chargée.';
+        ? ((a ? a.name : '') + '  —  ' + rt.imageWidth + '×' + rt.imageHeight + ' px')
+        : (a && a.name ? (a.name + '  —  (vide)') : 'Aucune image chargée.');
       if (!document.getElementById('export-modal').hidden) refreshExportText();
     });
 

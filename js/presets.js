@@ -54,17 +54,18 @@
   // Save the current project's slicing. One preset per sheet name: saving
   // again for the same sheet overwrites it (keeping the custom display name).
   function saveCurrent(name) {
-    var p = HA.store.state.project;
-    var sheetName = p.spriteSheetName || '';
+    var sh = HA.store.activeSheet();
+    var sheetName = (sh && sh.name) || '';
+    var slicing = (sh && sh.slicing) || HA.defaultSlicing();
     var existing = sheetName ? findForSheet(sheetName) : null;
     if (existing) {
-      existing.slicing = clone(p.slicing);
+      existing.slicing = clone(slicing);
       existing.savedAt = Date.now();
       if (name) existing.name = name;
       persist();
       return existing;
     }
-    var preset = normalize({ name: name, sheetName: sheetName, slicing: p.slicing });
+    var preset = normalize({ name: name, sheetName: sheetName, slicing: slicing });
     list.push(preset);
     persist();
     return preset;

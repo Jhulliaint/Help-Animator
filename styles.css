@@ -412,12 +412,13 @@ input[type="checkbox"] { accent-color: var(--cyan); width: 16px; height: 16px; }
 /* preview mirror toggle (active state) */
 .btn.icon.active { background: linear-gradient(135deg, var(--cyan), var(--violet)); color: #fff; box-shadow: var(--glow); }
 
-/* saved slicing presets */
-.presets { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-soft); display: flex; flex-direction: column; gap: 8px; }
-.presets select {
+/* saved slicing presets + sheet bank */
+.presets, .sheets { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border-soft); display: flex; flex-direction: column; gap: 8px; }
+.presets select, .sheets select {
   font: inherit; color: var(--text); background: #0b0916;
   border: 1px solid var(--border); border-radius: 8px; padding: 7px 9px; width: 100%;
 }
+.sheets .hint { margin: 2px 0 0; }
 
 /* ----------------------------- Toasts ----------------------------- */
 .toast-container { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; gap: 8px; z-index: 200; align-items: center; }

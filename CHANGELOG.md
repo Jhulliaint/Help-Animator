@@ -8,6 +8,35 @@ et le projet suit un [versionnage sémantique](https://semver.org/lang/fr/).
 ## [Non publié]
 - (rien pour l'instant)
 
+## [2.0.0] — 2026-06-15
+### Added
+- **Multi-planches (banque de planches) + atlas à l'export.** Un projet contient désormais
+  PLUSIEURS planches (chacune avec sa propre image et son propre découpage). Chaque frame retient
+  **sa planche source** (`{sheetId, row, col}`) → **une même animation peut mélanger des sprites de
+  plusieurs planches**, ce qui lève la limite du verrouillage (les coordonnées ne « se perdaient »
+  qu'en changeant de planche).
+  - **Banque de planches** (panneau Spritesheet) : importer **ajoute** une planche ; sélecteur de
+    planche active, renommer, retirer. Le découpage et la grille centrale portent sur la planche active.
+  - **Repack à l'export « Jeux-Math-o »** (`atlas.js`) : si les frames utilisées couvrent plusieurs
+    planches, l'outil **assemble toutes les frames utilisées en UNE seule feuille** (grille régulière,
+    chaque frame **redimensionnée à la case cible**, rendu net), émet la map dans cette feuille et
+    propose **⤓ Télécharger la planche générée (PNG)**. Le jeu reste **inchangé** (il charge toujours
+    une seule feuille). Mono-planche : comportement identique à avant (coordonnées dans la feuille d'origine).
+  - Case cible : `cell` explicite, sinon auto = plus grande source ; nombre de colonnes de l'atlas réglable.
+
+### Changed
+- **Modèle de projet v2** : `{ sheets[], activeSheetId, animations:[{ frames:[{sheetId,row,col}] }] }`.
+  Les projets v1 (image unique) sont **migrés automatiquement** au chargement (une planche, frames
+  ré-attribuées). Les frames n'utilisent plus `spriteId` (identité = planche + ligne + colonne).
+- La **surbrillance** des sprites affectés ne concerne que les frames **de la planche active**.
+- La **validation** contrôle chaque frame contre la grille de **sa** planche et résume le plan d'atlas
+  (N planches → 1 feuille) en cas de repack.
+
+### Verification
+- 21 tests logique (atlas : plan / dédoublonnage / case auto, repack vs passthrough, validation par
+  planche, actions de banque, migration v1→v2) + 29 tests UI (banque, affectation croisée, surbrillance
+  par planche active, repack + bouton PNG, presets / verrou sous le nouveau modèle) — **0 erreur**.
+
 ## [1.4.0] — 2026-06-15
 ### Added
 - **Découpes enregistrées** (`presets.js`) : enregistre la découpe courante **associée au nom
@@ -152,6 +181,7 @@ et le projet suit un [versionnage sémantique](https://semver.org/lang/fr/).
   assets) — déploiement statique sans build.
 
 [Non publié]: https://github.com/Jhulliaint/Help-Animator/compare/main...HEAD
+[2.0.0]: https://github.com/Jhulliaint/Help-Animator/compare/main...claude/peaceful-curie-t06vtb
 [1.4.0]: https://github.com/Jhulliaint/Help-Animator/compare/main...claude/peaceful-curie-t06vtb
 [1.3.0]: https://github.com/Jhulliaint/Help-Animator/compare/main...claude/peaceful-curie-t06vtb
 [1.2.0]: https://github.com/Jhulliaint/Help-Animator/compare/main...claude/peaceful-curie-t06vtb

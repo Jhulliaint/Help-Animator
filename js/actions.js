@@ -1,12 +1,15 @@
 /* =====================================================================
    actions.js — command layer. Every state mutation goes through here so
-   undo-history and autosave stay consistent.
+   undo-history and autosave stay consistent. Multi-sheet aware.
    ===================================================================== */
 (function (HA) {
   'use strict';
 
   function P() { return HA.store.state.project; }
   function RT() { return HA.store.state.runtime; }
+  function AS() { return HA.store.activeSheet(); }
+  function activeId() { return P().activeSheetId; }
+  function cols() { return Math.max(1, (AS() ? AS().slicing.columns : 8) | 0); }
 
   function after(reason) {
     HA.store.emit(reason);
@@ -33,29 +36,27 @@
     return name + '_' + i;
   }
 
+  // A frame remembers its source sheet. New frames default to the active sheet.
   function normalizeFrame(f) {
-    var cols = Math.max(1, P().slicing.columns | 0);
-    var id = f.spriteId, row = f.row, col = f.col;
-    if (id != null && (row == null || col == null)) { row = Math.floor(id / cols); col = id % cols; }
-    if (id == null && row != null && col != null) { id = row * cols + col; }
-    return { spriteId: id, row: row, col: col };
+    var c = cols();
+    var row = f.row, col = f.col;
+    if ((row == null || col == null) && f.spriteId != null) {
+      row = Math.floor(f.spriteId / c); col = f.spriteId % c;
+    }
+    return { sheetId: f.sheetId || activeId(), row: row, col: col };
   }
 
-  // Pull an animations list out of any supported file shape:
-  //  - a full project           -> { animations: [ {name, frames:[{spriteId,row,col}], fps, loop, locked} ] }
-  //  - a "Jeux-Math-o" preset    -> { animations: { name: [[row,col], ...] } }
-  //  - a bare exported map       -> { name: [[row,col], ...] }
   function extractAnimations(obj) {
     if (!obj || typeof obj !== 'object') return [];
-    var cols = Math.max(1, P().slicing.columns | 0);
+    var c = cols();
     if (Array.isArray(obj.animations)) {
       return obj.animations.map(function (a) {
         return {
           name: a.name || 'animation',
           frames: (a.frames || []).map(function (f) {
-            var row = f.row, col = f.col, id = f.spriteId;
-            if (row == null || col == null) { row = Math.floor(id / cols); col = id % cols; }
-            return { spriteId: (id != null ? id : row * cols + col), row: row, col: col };
+            var row = f.row, col = f.col;
+            if ((row == null || col == null) && f.spriteId != null) { row = Math.floor(f.spriteId / c); col = f.spriteId % c; }
+            return { row: row, col: col };   // sheetId stamped on merge (active sheet)
           }),
           fps: a.fps, loop: a.loop, locked: a.locked
         };
@@ -65,9 +66,8 @@
     return Object.keys(map).filter(function (k) { return Array.isArray(map[k]); }).map(function (name) {
       return {
         name: name,
-        frames: map[name].filter(function (p) { return Array.isArray(p) && p.length >= 2; }).map(function (p) {
-          return { spriteId: p[0] * cols + p[1], row: p[0], col: p[1] };
-        }),
+        frames: map[name].filter(function (p) { return Array.isArray(p) && p.length >= 2; })
+          .map(function (p) { return { row: p[0], col: p[1] }; }),
         fps: 8, loop: true, locked: false
       };
     });
@@ -75,43 +75,80 @@
 
   var actions = {
 
-    /* ----------------------------- slicing ----------------------------- */
-    // Slicing edits are applied live and are intentionally *not* pushed to
-    // history (they would flood the undo stack while typing).
+    /* ----------------------------- slicing (active sheet) --------------- */
     updateSlicing: function (patch) {
-      Object.assign(P().slicing, patch);
+      var s = AS(); if (!s) return;
+      Object.assign(s.slicing, patch);
       HA.sheet.clearCache();
       HA.store.recomputeCells();
       after('slicing');
     },
     deriveGrid: function () {
-      var rt = RT();
-      if (!rt.imageLoaded) return;
-      var d = HA.slicer.deriveColumnsRows(rt.imageWidth, rt.imageHeight, P().slicing);
+      var rt = RT(); if (!rt.imageLoaded) return;
+      var d = HA.slicer.deriveColumnsRows(rt.imageWidth, rt.imageHeight, AS().slicing);
       this.updateSlicing(d);
     },
     deriveSize: function () {
-      var rt = RT();
-      if (!rt.imageLoaded) return;
-      var d = HA.slicer.deriveSpriteSize(rt.imageWidth, rt.imageHeight, P().slicing);
+      var rt = RT(); if (!rt.imageLoaded) return;
+      var d = HA.slicer.deriveSpriteSize(rt.imageWidth, rt.imageHeight, AS().slicing);
       this.updateSlicing(d);
     },
 
-    /* ----------------------------- image ----------------------------- */
-    setImage: function (name, dataUrl) {
+    /* ----------------------------- sheets (image bank) ------------------ */
+    // Import an image: fill the active sheet if it's empty, else add a new sheet.
+    importImage: function (name, dataUrl) {
       return HA.sheet.loadImageFromDataUrl(dataUrl).then(function (img) {
-        var rt = RT();
-        rt.image = img;
-        rt.imageLoaded = true;
-        rt.imageWidth = img.naturalWidth;
-        rt.imageHeight = img.naturalHeight;
-        P().imageDataUrl = dataUrl;
-        P().spriteSheetName = name;
+        var target = AS();
+        if (target && target.imageDataUrl) {     // active already has an image -> new sheet
+          target = HA.defaultSheet(name);
+          P().sheets.push(target);
+          P().activeSheetId = target.id;
+        }
+        target.name = name;
+        target.imageDataUrl = dataUrl;
+        RT().sheetImages[target.id] = img;
         HA.sheet.clearCache();
+        HA.store.syncActiveImage();
         HA.store.recomputeCells();
+        RT().selectedSpriteIds.clear();
         after('image');
-        return img;
+        return target;
       });
+    },
+    setActiveSheet: function (id) {
+      if (!HA.store.sheetById(id)) return;
+      P().activeSheetId = id;
+      HA.sheet.clearCache();
+      HA.store.syncActiveImage();
+      HA.store.recomputeCells();
+      RT().selectedSpriteIds.clear();
+      RT().lastClickedSpriteId = null;
+      after('sheet-active');
+    },
+    renameSheet: function (id, name) {
+      var s = HA.store.sheetById(id); if (!s) return;
+      s.name = (name || '').trim() || s.name;
+      after('sheet-rename');
+    },
+    removeSheet: function (id) {
+      var p = P();
+      if (p.sheets.length <= 1) { return false; }   // keep at least one
+      var i = p.sheets.findIndex(function (s) { return s.id === id; });
+      if (i < 0) return false;
+      HA.store.pushHistory();
+      p.sheets.splice(i, 1);
+      delete RT().sheetImages[id];
+      // drop frames that referenced the removed sheet
+      p.animations.forEach(function (a) {
+        a.frames = a.frames.filter(function (f) { return f.sheetId !== id; });
+      });
+      if (p.activeSheetId === id) p.activeSheetId = p.sheets[0].id;
+      HA.sheet.clearCache();
+      HA.store.syncActiveImage();
+      HA.store.recomputeCells();
+      RT().selectedSpriteIds.clear();
+      after('sheet-remove');
+      return true;
     },
 
     /* --------------------------- animations --------------------------- */
@@ -133,17 +170,15 @@
       if (!RT().selectedAnimationId && P().animations[0]) RT().selectedAnimationId = P().animations[0].id;
       after('anim-add');
     },
-    // Merge animations from another project / exported map, without replacing
-    // the current image or existing animations. Colliding names get a suffix.
     mergeAnimationsFromText: function (text) {
-      var list = extractAnimations(JSON.parse(text));   // JSON errors bubble to caller
+      var list = extractAnimations(JSON.parse(text));
       if (!list.length) return 0;
       HA.store.pushHistory();
       list.forEach(function (a) {
         P().animations.push({
           id: HA.uid('anim'),
           name: uniqueName(a.name),
-          frames: (a.frames || []).map(normalizeFrame),
+          frames: (a.frames || []).map(normalizeFrame),   // stamped to active sheet
           fps: a.fps || 8,
           loop: a.loop !== false,
           locked: !!a.locked
@@ -153,8 +188,6 @@
       after('anim-add');
       return list.length;
     },
-    // Ensure every direction that has a non-empty *_left also has a *_right, and
-    // turn on flipRightFromLeft so the game mirrors *_left for the empty *_right.
     mirrorRightFromLeft: function () {
       HA.store.pushHistory();
       if (!P().export.game) P().export.game = HA.defaultProject().export.game;
@@ -184,7 +217,6 @@
       }
       after('anim-remove');
     },
-    // Remove every *unlocked* animation; locked ones are kept (the whole point).
     clearAllAnimations: function () {
       HA.store.pushHistory();
       var kept = P().animations.filter(function (a) { return a.locked; });
@@ -231,16 +263,12 @@
     },
 
     /* ----------------------------- frames ----------------------------- */
-    // (all frame mutations are no-ops on a locked animation)
     addFrame: function (animId, frame, atIndex) {
       var a = getAnim(animId); if (!a || a.locked) return;
       HA.store.pushHistory();
       var f = normalizeFrame(frame);
-      if (typeof atIndex === 'number' && atIndex >= 0 && atIndex <= a.frames.length) {
-        a.frames.splice(atIndex, 0, f);
-      } else {
-        a.frames.push(f);
-      }
+      if (typeof atIndex === 'number' && atIndex >= 0 && atIndex <= a.frames.length) a.frames.splice(atIndex, 0, f);
+      else a.frames.push(f);
       after('frame-change');
     },
     addFrames: function (animId, frames, replace) {
@@ -252,14 +280,13 @@
     },
     addSpritesToAnimation: function (animId, spriteIds) {
       var a = getAnim(animId); if (!a || a.locked || !spriteIds.length) return;
-      var cols = Math.max(1, P().slicing.columns | 0);
+      var c = cols(); var sid = activeId();
       HA.store.pushHistory();
       spriteIds.forEach(function (id) {
-        a.frames.push({ spriteId: id, row: Math.floor(id / cols), col: id % cols });
+        a.frames.push({ sheetId: sid, row: Math.floor(id / c), col: id % c });
       });
       after('frame-change');
     },
-    // Insert several frames at a given index (used for multi-sprite drops).
     insertFrames: function (animId, frames, atIndex) {
       var a = getAnim(animId); if (!a || a.locked || !frames.length) return;
       HA.store.pushHistory();
@@ -274,13 +301,9 @@
       a.frames.splice(index, 1);
       after('frame-change');
     },
-    // Move frame from "from" to land before original index "to".
     moveFrame: function (animId, from, to) {
       var a = getAnim(animId); if (!a || a.locked) return;
-      if (from === to || from + 1 === to) {
-        // dropping right where it already is -> no-op
-        if (from === to) return;
-      }
+      if (from === to) return;
       HA.store.pushHistory();
       var item = a.frames.splice(from, 1)[0];
       var dest = to;
