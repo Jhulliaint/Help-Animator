@@ -8,6 +8,24 @@ et le projet suit un [versionnage sémantique](https://semver.org/lang/fr/).
 ## [Non publié]
 - (rien pour l'instant)
 
+## [1.4.0] — 2026-06-15
+### Added
+- **Découpes enregistrées** (`presets.js`) : enregistre la découpe courante **associée au nom
+  du fichier image** → recharger la même planche **restaure automatiquement** sa découpe.
+  Découpes **renommables**, applicables via une liste déroulante, supprimables. Persistées en
+  `localStorage` ; **export/import `slicing-presets.json`** (committable dans le repo) et
+  **chargement best-effort** de ce fichier depuis le repo au démarrage (http/Vercel ; ignoré en
+  `file://`). Un exemple (`hero-sheet.png`) est fourni dans `slicing-presets.json`.
+- **Surbrillance des sprites affectés** : sélectionner une animation **met en évidence dans la
+  grille** les cases qui en font partie (liseré + halo), avec un badge **×N** sur les sprites
+  réutilisés plusieurs fois. Correspondance par `[ligne, colonne]` (stable même si le nombre de
+  colonnes change ensuite).
+
+### Verification
+- +15 tests logique (découpes : save / find / apply / overwrite / rename / remove / export-import /
+  persistance) et +7 tests UI (surbrillance, badge ×N, bascule d'animation) — **0 erreur**.
+  Régression v1.2/v1.3 re-vérifiée.
+
 ## [1.3.0] — 2026-06-14
 ### Added
 - **Rognage (inset) à la découpe** : nouveau champ qui rogne N px sur chaque bord de chaque
@@ -126,6 +144,7 @@ et le projet suit un [versionnage sémantique](https://semver.org/lang/fr/).
   assets) — déploiement statique sans build.
 
 [Non publié]: https://github.com/Jhulliaint/Help-Animator/compare/main...HEAD
+[1.4.0]: https://github.com/Jhulliaint/Help-Animator/compare/main...claude/peaceful-curie-t06vtb
 [1.3.0]: https://github.com/Jhulliaint/Help-Animator/compare/main...claude/peaceful-curie-t06vtb
 [1.2.0]: https://github.com/Jhulliaint/Help-Animator/compare/main...claude/peaceful-curie-t06vtb
 [1.1.0]: https://github.com/Jhulliaint/Help-Animator/pull/2

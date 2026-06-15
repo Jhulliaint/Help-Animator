@@ -21,9 +21,10 @@ Tu remplaces une session précédente : ce message contient l'état complet pour
 
 Help-Animator est un OUTIL web local (HTML/CSS/JS vanilla, zéro build, zéro dépendance) qui
 découpe une spritesheet, affecte les sprites à des animations nommées (drag & drop ou saisie),
-prévisualise le mouvement, et exporte une map « HERO_SPRITE_MAP ». Version actuelle : v1.3.0
-(PR #1→#3 fusionnées dans main ; PR #5 — alignement Jeux-Math-o + rognage/miroir/verrou/fusion —
-en draft), déployée en statique sur Vercel. S'ouvre en double-cliquant index.html (aucune CLI).
+prévisualise le mouvement, et exporte une map « HERO_SPRITE_MAP ». Version actuelle : v1.4.0
+(PR #1→#3 fusionnées dans main ; PR #5 — alignement Jeux-Math-o + rognage/miroir/verrou/fusion +
+découpes enregistrées + surbrillance des sprites affectés — en draft), déployée sur Vercel.
+S'ouvre en double-cliquant index.html (aucune CLI).
 
 PROJET COMPLÉMENTAIRE (LECTURE SEULE)
 
@@ -77,8 +78,9 @@ Architecture : modules à responsabilité unique sous le namespace global HA, ch
   js/animations.js panneau d'animations (accordéon : seule l'animation active est dépliée)
   js/preview.js    lecteur d'animation (play/pause, FPS, boucle, frame courante, zoom)
   js/example.js    génère une feuille de démonstration 8×5 (canvas → data URL, file://-safe)
+  js/presets.js    découpes enregistrées (localStorage + slicing-presets.json du repo)
   js/app.js        amorçage & câblage de l'UI (import, slicing, export modale, raccourcis)
-  index.html, styles.css, vercel.json, README.md, CHANGELOG.md, HANDOFF.md
+  index.html, styles.css, vercel.json, slicing-presets.json, README.md, CHANGELOG.md, HANDOFF.md
 
 Convention : id = ligne × colonnes + colonne ; frames exportées en [ligne, colonne], base 0.
 
@@ -119,9 +121,10 @@ Lancer & tester :
     (v1.2.0 validée ainsi : 22 tests logique + 20 tests UI, 0 erreur.)
 
 État Git : main = v1.1.0 (Initial → PR#1 outil → PR#2 UI/accordéon → PR#3 docs). Branche de
-session claude/peaceful-curie-t06vtb = v1.3.0 (PR #5 draft : v1.2.0 alignement Jeux-Math-o
-[preset + validation + exemple + 16 noms] PUIS v1.3.0 [rognage, aperçu miroir, « droite miroir »,
-verrou par animation, fusion d'animations]). Déploiement Vercel automatique sur main.
+session claude/peaceful-curie-t06vtb = v1.4.0 (PR #5 draft : v1.2.0 alignement Jeux-Math-o
+[preset + validation + exemple + 16 noms] → v1.3.0 [rognage, aperçu miroir, « droite miroir »,
+verrou, fusion] → v1.4.0 [découpes enregistrées, surbrillance des sprites affectés]).
+Déploiement Vercel automatique sur main.
 
 PISTES D'AMÉLIORATION
   FAIT (PR #5) :
@@ -129,6 +132,9 @@ PISTES D'AMÉLIORATION
   - ✅ Rognage (inset) à la découpe : enlève les bords parasites (dérive de grille / séparateurs).
   - ✅ Miroir : aperçu en miroir + « ⇄ Droite miroir » (crée les *_right vides + flipRightFromLeft).
   - ✅ Verrou par animation (figée = protégée, conservée au changement de planche) + Fusion d'animations.
+  - ✅ Découpes enregistrées (presets.js) : slicing associé au nom de fichier, auto-réappliqué ;
+    localStorage + export/import + seed best-effort depuis slicing-presets.json (repo).
+  - ✅ Surbrillance : sélectionner une animation surligne ses sprites dans la grille (badge ×N).
   RESTE À FAIRE :
   - Vraie MULTI-PLANCHES (une feuille source par animation) — demandé, mis en attente : le jeu ne
     charge qu'UNE feuille, donc un export multi-feuilles n'est pas directement consommable tel quel.
@@ -144,8 +150,9 @@ Commence par : (1) lire Jeux-Math-o et me résumer comment il consomme les anima
 ## Notes pour moi (hors prompt)
 - La nouvelle session se fait **sur Help-Animator**, avec **Jeux-Math-o ajouté en lecture seule**.
 - Une autre instance code déjà le jeu → Help-Animator **lit** seulement Jeux-Math-o.
-- État actuel : Help-Animator v1.3.0 — `main` à v1.1.0 (PR #1–#3) ; PR #5 (draft) ajoute le
-  preset Jeux-Math-o, la validation, l'exemple généré, les 16 noms alignés, puis le rognage
-  anti-bords-parasites, l'aperçu miroir + « droite miroir », le verrou et la fusion d'animations.
+- État actuel : Help-Animator v1.4.0 — `main` à v1.1.0 (PR #1–#3) ; PR #5 (draft) ajoute le
+  preset Jeux-Math-o, la validation, l'exemple généré, les 16 noms alignés, le rognage
+  anti-bords-parasites, l'aperçu miroir + « droite miroir », le verrou et la fusion d'animations,
+  puis les découpes enregistrées et la surbrillance des sprites affectés à l'animation.
 - Si besoin de la map réelle/corrigée : l'exporter depuis l'app (format **🎮 Jeux-Math-o** →
   fichier `hero_sprite_map.json`, à déposer dans `Jeux-Math-o/assets/sprites/`).
